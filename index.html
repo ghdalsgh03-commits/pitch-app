@@ -106,6 +106,7 @@ section{display:grid;gap:16px}
     <p class="muted" id="streakText"></p>
     <button type="button" class="primary" id="go">퀘스트 도전</button>
     <p class="muted">이어폰을 끼면 더 정확해요. 처음 한 번 마이크 허용을 눌러 주세요.</p>
+    <div class="row"><span class="muted">목소리</span><button type="button" class="vbtn" data-v="m" style="min-height:36px;padding:4px 14px">남성</button><button type="button" class="vbtn" data-v="f" style="min-height:36px;padding:4px 14px">여성</button><span class="muted" style="font-size:.78rem">여성은 한 옥타브 위 음으로 연습해요</span></div>
   </div>
 
   <div class="card" id="drillCard" hidden>
@@ -229,7 +230,8 @@ async function getClip(k){const d=await idb();if(!d)return null;return new Promi
 const sessions=()=>LS.get("sessions",[]);
 
 /* ===== quests ===== */
-const P1=["D3","E3","F3","G3","A3","B3","C4"], P2=["A2","B2","C3","D3","E3","F3","G3","A3","B3","C4","D4","E4"];
+const P1=["E3","F3","G3","A3","B3","C4","D4"], P2=["C3","D3","E3","F3","G3","A3","B3","C4","D4","E4"];
+const vShift=()=>LS.get("voice","m")==="f"?12:0;
 const CHAPTERS={1:"1장 · 음정 잡기",2:"2장 · 흔들림 없이",3:"3장 · 음역 넓히기"};
 const QUESTS=[
  {id:"1-1",ch:1,name:"들은 음 따라 내기",desc:"띠 ±50센트. 들은 음을 바로 따라 내는 감을 잡아요.",tol:50,pool:P1,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",2.0],["first","<=",35]]},
@@ -375,6 +377,7 @@ function renderHome(){
   }else if(s.length===1)$("headline").textContent="첫날 기록 완료! 내일부터 비교가 시작돼요.";
   $("go").textContent=done?(dailyStat().today?"일일 퀘스트 한 번 더":"일일 퀘스트 시작"):qs.streak?`이어서 도전 (${qs.streak}/${q.need})`:qs.tries?"퀘스트 다시 도전":"퀘스트 도전";
   renderDrill();
+  document.querySelectorAll(".vbtn").forEach(b=>{const on=LS.get("voice","m")===b.dataset.v;b.style.background=on?"var(--accent)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"var(--accent)":"";b.onclick=()=>{LS.set("voice",b.dataset.v);renderHome()}});
   // progress
   if(s.length){$("progressCard").hidden=false;const l=s[s.length-1],f=s[0];
     $("sTime").textContent=l.match?l.match.avgTook.toFixed(1)+"초":"–";
@@ -394,7 +397,7 @@ let plan=[],pi=0,running=false,target=null,holdT=0,startT=0,firstErr=null,voiced
 const GIVEUP=20000;let gu=0;
 function buildPlan(){SQ=curQuest();const p=[];for(let i=0;i<SQ.match;i++)p.push({k:"match"});for(let i=0;i<SQ.hold;i++)p.push({k:"hold"});return p}
 function need(){const it=plan[Math.min(pi,plan.length-1)];return it&&it.k==="hold"?SQ.holdMs:1000}
-function nextNote(){const pool=SQ?SQ.pool:POOL;if(pool.length===1){lastNote=pool[0];return M(pool[0])}let n;do{n=pool[Math.floor(Math.random()*pool.length)]}while(n===lastNote);lastNote=n;return M(n)}
+function nextNote(){const pool=SQ?SQ.pool:POOL;if(pool.length===1){lastNote=pool[0];return M(pool[0])+vShift()}let n;do{n=pool[Math.floor(Math.random()*pool.length)]}while(n===lastNote);lastNote=n;return M(n)+vShift()}
 function sd(a){if(a.length<5)return null;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length)}
 function startItem(){
   busy=false;const it=plan[pi];target=it.note?M(it.note):nextNote();lastNote=it.note||lastNote;holdT=0;firstErr=null;voicedAt=null;startT=performance.now();holdIn=0;holdAll=0;holdC=[];
