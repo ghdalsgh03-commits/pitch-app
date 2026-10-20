@@ -153,6 +153,7 @@ section{display:grid;gap:16px}
     <div class="meter"><i id="hold"></i></div>
     <canvas id="cv" width="1000" height="400" aria-label="내 음높이"></canvas>
     <button type="button" id="replay">목표 음 다시 듣기</button>
+    <p class="muted" style="margin:0">소리가 안 들리면: 무음 모드 끄기 · 볼륨 올리기 · 이어폰 다시 연결</p>
   </div>
 </section>
 
@@ -327,7 +328,7 @@ function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}">
 /* ===== audio ===== */
 let ac=null,stream=null,an=null,buf=null;
 async function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")await ac.resume();return ac}
-async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)}}
+async function mic(){try{if(navigator.audioSession)navigator.audioSession.type="play-and-record"}catch(e){}await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)}}
 function yin(b,sr){const W=b.length>>1,tmin=Math.floor(sr/900),tmax=Math.min(W-1,Math.ceil(sr/65));let e=0;for(let i=0;i<W;i++)e+=b[i]*b[i];if(Math.sqrt(e/W)<0.008)return null;const d=new Float32Array(tmax+1),dn=new Float32Array(tmax+1);for(let t=tmin;t<=tmax;t++){let s=0;for(let i=0;i<W;i++){const a=b[i]-b[i+t];s+=a*a}d[t]=s}let run=0,best=-1;for(let t=tmin;t<=tmax;t++){run+=d[t];dn[t]=run?d[t]*(t-tmin+1)/run:1}for(let t=tmin+1;t<tmax;t++){if(dn[t]<0.15){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0)return null;const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
 function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>65&&f<1000?69+12*Math.log2(f/440):null}
 function tone(m,d){const o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=hz(m);const t=ac.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.03);g.gain.setValueAtTime(.25,t+d-.06);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
@@ -406,7 +407,7 @@ function startItem(){
   $("instr").textContent=it.k==="match"?"들은 음을 '아~'로 따라 내요. 초록 띠 안에서 1초":`들은 음을 '아~'로 ${SQ.holdMs/1000}초 동안 띠 안에서 버텨요`;
   const group=plan.filter(x=>x.k===it.k),idx=plan.slice(0,pi+1).filter(x=>x.k===it.k).length;
   $("dots").innerHTML=group.map((_,i)=>`<i class="${i<idx-1?"done":""}"></i>`).join("");
-  $("target").innerHTML=`${solOf(target)}<small style="display:block;font-size:1rem;font-weight:600;color:var(--muted);margin-top:6px">${koName(target)} · ${nameOf(target)}</small>`;tone(target,1.2);listenUntil=performance.now()+1450;
+  $("target").innerHTML=`${solOf(target)}<small style="display:block;font-size:1rem;font-weight:600;color:var(--muted);margin-top:6px">${octWord(target)} 음</small>`;tone(target,1.2);listenUntil=performance.now()+1450;
 }
 function loop(){
   if(!running)return;const now=performance.now(),dt=now-lastF;lastF=now;const tol=SQ.tol;
