@@ -208,6 +208,10 @@ section{display:grid;gap:16px}
 const NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const M=n=>{const m=n.match(/^([A-G]#?)(\d)$/);return NAMES.indexOf(m[1])+12*(+m[2]+1)};
 const nameOf=m=>{const r=Math.round(m);return NAMES[((r%12)+12)%12].replace("#","♯")+(Math.floor(r/12)-1)};
+const SOL=["도","도♯","레","레♯","미","파","파♯","솔","솔♯","라","라♯","시"];
+const solOf=m=>SOL[((Math.round(m)%12)+12)%12];
+const octWord=m=>{const o=Math.floor(Math.round(m)/12)-1;return o<=2?"아주 낮은":o===3?"낮은":o===4?"가운데":"높은"};
+const koName=m=>octWord(m)+" "+solOf(m);
 const hz=m=>440*Math.pow(2,(m-69)/12);
 const $=id=>document.getElementById(id);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
@@ -312,8 +316,8 @@ function renderDrill(){
   const low=a.weak.filter(r=>r.n<M("F3")).length,high=a.weak.filter(r=>r.n>M("A3")).length;
   if(low>=2)tips.push("약한 음이 <b>낮은 쪽</b>에 몰려 있어요. 낮은 음은 목을 누르지 말고 편하게 떨어뜨리세요.");
   if(high>=2)tips.push("약한 음이 <b>높은 쪽</b>에 몰려 있어요. 높은 음은 소리를 키우지 말고 가볍게 올리세요.");
-  $("weakBox").innerHTML=`<div>${a.weak.map(r=>`<span class="chip">${nameOf(r.n)}</span>`).join("")}</div>`+
-   `<p class="muted">${a.weak.map(r=>`${nameOf(r.n)}: 실패 ${Math.round(r.miss*100)}% · 오차 ${Math.round(r.err)}센트${Math.abs(r.bias)>8?(r.bias<0?" (낮게)":" (높게)"):""}`).join("<br>")}</p>`+
+  $("weakBox").innerHTML=`<div>${a.weak.map(r=>`<span class="chip">${koName(r.n)}</span>`).join("")}</div>`+
+   `<p class="muted">${a.weak.map(r=>`${koName(r.n)} (${nameOf(r.n)}): 실패 ${Math.round(r.miss*100)}% · 오차 ${Math.round(r.err)}센트${Math.abs(r.bias)>8?(r.bias<0?" (낮게)":" (높게)"):""}`).join("<br>")}</p>`+
    (tips.length?`<p style="margin:0">${tips.join("<br>")}</p>`:"")+`<p class="muted">이 음들만 잡으면 지금 퀘스트 통과가 확 쉬워져요.</p>`;
 }
 function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}"></i>`;return h}
@@ -399,7 +403,7 @@ function startItem(){
   $("instr").textContent=it.k==="match"?"들은 음을 '아~'로 따라 내요. 초록 띠 안에서 1초":`들은 음을 '아~'로 ${SQ.holdMs/1000}초 동안 띠 안에서 버텨요`;
   const group=plan.filter(x=>x.k===it.k),idx=plan.slice(0,pi+1).filter(x=>x.k===it.k).length;
   $("dots").innerHTML=group.map((_,i)=>`<i class="${i<idx-1?"done":""}"></i>`).join("");
-  $("target").textContent=nameOf(target);tone(target,1.2);listenUntil=performance.now()+1450;
+  $("target").innerHTML=`${solOf(target)}<small style="display:block;font-size:1rem;font-weight:600;color:var(--muted);margin-top:6px">${koName(target)} · ${nameOf(target)}</small>`;tone(target,1.2);listenUntil=performance.now()+1450;
 }
 function loop(){
   if(!running)return;const now=performance.now(),dt=now-lastF;lastF=now;const tol=SQ.tol;
@@ -453,7 +457,7 @@ function finishDrill(){
   $("doneTitle").textContent="특훈 · 약점 음 집중";$("dRank").textContent=rk;$("dRank").className=rk;$("dRate").textContent=rate+"%";$("dBest").textContent="";
   $("dResult").textContent=rate>=85?"약점이 풀리고 있어요":"아직 약점이 남아 있어요";$("dResult").className="result "+(rate>=85?"pass":"fail");
   const by={};its.forEach(i=>{(by[i.n]=by[i.n]||[]).push(i)});
-  $("dConds").innerHTML=Object.keys(by).map(n=>{const a=by[n],ok=a.filter(i=>i.ok).length,fe=a.filter(i=>i.f!=null),e=fe.length?Math.round(fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length):"–";return `<li class="${ok===a.length?"ok":"ng"}"><span>${nameOf(+n)}</span><b>성공 ${ok}/${a.length} · 오차 ${e}센트</b></li>`}).join("");
+  $("dConds").innerHTML=Object.keys(by).map(n=>{const a=by[n],ok=a.filter(i=>i.ok).length,fe=a.filter(i=>i.f!=null),e=fe.length?Math.round(fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length):"–";return `<li class="${ok===a.length?"ok":"ng"}"><span>${koName(+n)} (${nameOf(+n)})</span><b>성공 ${ok}/${a.length} · 오차 ${e}센트</b></li>`}).join("");
   $("dPipsRow").hidden=true;$("dTime").textContent=its.length?(its.reduce((x,i)=>x+i.took,0)/its.length).toFixed(1)+"초":"–";
   const fe=its.filter(i=>i.f!=null);$("dFirst").textContent=fe.length?Math.round(fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length)+"센트":"–";$("dHold").textContent="–";
   $("doneLine").innerHTML="“"+pick(rate>=85?"drillGood":"drillBad")+"”";
@@ -564,11 +568,11 @@ async function openSong(x){
 function fLoop(){
   if(!fRun)return;const now=performance.now(),dt=(now-fLast)/1000;fLast=now;const m=micMidi();if(m!=null)fSec+=dt;
   fTrail.push({t:now,m});fTrail=fTrail.filter(p=>now-p.t<10000);
-  $("fCur").textContent=m!=null?nameOf(m):"–";$("fSec").textContent=Math.round(fSec)+"초";
+  $("fCur").textContent=m!=null?koName(m):"–";$("fSec").textContent=Math.round(fSec)+"초";
   const rc=fTrail.filter(p=>p.m!=null&&now-p.t<600).map(p=>p.m);if(rc.length>8){const a=rc.reduce((x,y)=>x+y,0)/rc.length;$("fWob").textContent=Math.round(Math.sqrt(rc.reduce((x,y)=>x+(y-a)*(y-a),0)/rc.length)*100)+"센트"}
   const cv=$("fCv"),g=cv.getContext("2d"),W=cv.width,H=cv.height;g.clearRect(0,0,W,H);
   const v=fTrail.filter(p=>p.m!=null).map(p=>p.m).sort((a,b)=>a-b),c=v.length?v[v.length>>1]:57,Y=x=>H/2-(x-c)/8*(H/2),X=t=>W-(now-t)/10000*W;
-  g.strokeStyle=css("--line");g.fillStyle=css("--muted");g.font="20px system-ui";for(let k=-7;k<=7;k++){const n=Math.round(c)+k,y=Y(n);g.beginPath();g.moveTo(56,y);g.lineTo(W,y);g.stroke();if(k%2===0)g.fillText(nameOf(n),4,y+7)}
+  g.strokeStyle=css("--line");g.fillStyle=css("--muted");g.font="20px system-ui";for(let k=-7;k<=7;k++){const n=Math.round(c)+k,y=Y(n);g.beginPath();g.moveTo(56,y);g.lineTo(W,y);g.stroke();if(k%2===0)g.fillText(solOf(n),4,y+7)}
   g.strokeStyle=css("--warm");g.lineWidth=5;g.beginPath();let on=false;fTrail.forEach(p=>{if(p.m==null){on=false;return}const x=X(p.t),y=Y(p.m);on?g.lineTo(x,y):g.moveTo(x,y);on=true});g.stroke();g.lineWidth=1;
   requestAnimationFrame(fLoop);
 }
