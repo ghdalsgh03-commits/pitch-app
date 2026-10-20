@@ -434,7 +434,10 @@ function draw(now,tol){
 }
 $("go").onclick=async()=>{
 
-  try{await mic()}catch(e){alertBox("마이크를 쓸 수 없어요. 브라우저 설정에서 마이크를 허용해 주세요.");return}
+  const go=$("go"),label=go.textContent;go.disabled=true;go.textContent="마이크 준비 중…";
+  try{await Promise.race([mic(),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),10000))])}
+  catch(e){go.disabled=false;go.textContent=label;micHelp(e);return}
+  go.disabled=false;go.textContent=label;
   plan=allClear()?buildDaily():buildPlan();pi=0;gu=0;res={match:[],hold:[]};trail=[];running=true;show("session");lastF=performance.now();startItem();requestAnimationFrame(loop);
 };
 $("drillGo").onclick=async()=>{
@@ -460,6 +463,16 @@ function finishDrill(){
 $("replay").onclick=()=>{if(target!=null){tone(target,1.2);listenUntil=performance.now()+1450}};
 $("quit").onclick=()=>{running=false;show("home");renderHome()};
 function alertBox(t){$("headline").textContent=t}
+function micHelp(e){
+  const ios=/iPhone|iPad/.test(navigator.userAgent),name=(e&&e.name)||"",insecure=!window.isSecureContext||!navigator.mediaDevices;
+  let msg=insecure?"이 화면에선 마이크를 쓸 수 없어요. 사파리(안드로이드는 크롬)로 주소를 직접 열어 주세요."
+   :name==="NotAllowedError"?(ios?"마이크가 막혀 있어요. 주소창 왼쪽 'aA' → 웹사이트 설정 → 마이크 → 허용으로 바꾼 뒤 다시 눌러 주세요. 홈 화면 앱이면 설정 앱 → Safari → 마이크 → 허용도 확인해 주세요.":"마이크가 막혀 있어요. 주소창 왼쪽 자물쇠 → 권한 → 마이크 허용으로 바꾼 뒤 다시 눌러 주세요.")
+   :name==="NotFoundError"?"마이크를 찾지 못했어요. 이어폰 마이크가 연결돼 있는지 확인해 주세요."
+   :e&&e.message==="timeout"?"마이크 허용 창이 안 떴어요. 페이지를 새로고침하고 다시 눌러 주세요. 계속 안 되면 홈 화면 앱 말고 사파리에서 열어 보세요."
+   :"마이크를 켜지 못했어요 ("+(name||"알 수 없음")+"). 앱을 완전히 껐다 다시 열어 주세요.";
+  let box=$("micErr");if(!box){box=document.createElement("p");box.id="micErr";box.style.cssText="margin:0;padding:12px;border-radius:12px;background:var(--warm-soft);color:var(--warm);font-weight:700";$("go").insertAdjacentElement("afterend",box)}
+  box.textContent=msg;box.scrollIntoView({block:"center"});
+}
 
 /* ===== record ===== */
 let rec=null,recTimer=null;
