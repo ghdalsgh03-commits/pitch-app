@@ -199,6 +199,10 @@ section{display:grid;gap:16px}
 
 </div>
 <script>
+/* KakaoTalk in-app browser: hand off to the phone's real browser (mic + home-screen install work there) */
+(function(){if(/KAKAOTALK/i.test(navigator.userAgent)){location.href="kakaotalk://web/openExternal?url="+encodeURIComponent(location.href)}})();
+</script>
+<script>
 "use strict";
 /* ===== basics ===== */
 const NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
