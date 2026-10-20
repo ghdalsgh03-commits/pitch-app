@@ -329,11 +329,11 @@ function ding(){const t=ac.currentTime;[1047,1319].forEach((f,i)=>{const o=ac.cr
 
 /* ===== songs ===== */
 const SONGS=[
- {t:"서른 즈음에",a:"김광석",id:"aG7lxDbJkGM",need:0},
+ {t:"서른 즈음에",a:"김광석",id:"aG7lxDbJkGM",alt:["4dHsW45mrfk"],need:0},
  {t:"이등병의 편지",a:"김광석",id:"KsVtgmTaF_w",need:0},
  {t:"거리에서",a:"김광석",id:"R0DA_t_mWk8",need:3},
- {t:"두 사람",a:"성시경",id:"D6qox5OGiyw",need:5},
- {t:"모든 날, 모든 순간",a:"폴킴",id:"cp1-o4_H4qM",need:8},
+ {t:"두 사람",a:"성시경",id:"D6qox5OGiyw",alt:["gc1QfuY6JoQ"],need:5},
+ {t:"모든 날, 모든 순간",a:"폴킴",id:"mA9RElvQ2Ko",alt:["5nV6e2zQbOI"],need:8},
  {t:"기억의 습작",a:"전람회",id:"TKa1sUBEce4",need:12},
  {t:"취중진담",a:"전람회",id:"Z21U2xkaZ4Y",need:16},
  {t:"감사",a:"김동률",id:"HqMpHGkPoQQ",need:20}
@@ -538,7 +538,12 @@ window.onYouTubeIframeAPIReady=()=>{ytReady=true};
 async function openSong(x){
   show("sing");$("singTitle").textContent=`${x.t} · ${x.a}`;
   const load=()=>{if(!ytReady||!window.YT){if(++ytTry>20){$("ytNote").textContent="영상을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";return}setTimeout(load,500);return}ytTry=0;
-    if(ytPlayer&&ytPlayer.loadVideoById)ytPlayer.loadVideoById(x.id);else ytPlayer=new YT.Player("ytPlayer",{videoId:x.id,playerVars:{playsinline:1,rel:0},events:{onError:()=>{$("ytNote").textContent="이 영상은 여기서 재생이 막혀 있어요."}}})};
+    const ids=[x.id].concat(x.alt||[]);let k=0;
+    const fallback=()=>{$("ytNote").innerHTML=`이 노래방 영상은 유튜브가 다른 사이트 재생을 막아 뒀어요. <a href="https://www.youtube.com/watch?v=${x.id}" target="_blank" rel="noopener">유튜브에서 열기</a> — PC는 옆 창에 띄워 두고, 휴대폰은 다른 기기로 반주를 틀면 아래 음정 그래프는 그대로 써요.`};
+    const onErr=()=>{k++;if(k<ids.length){ytPlayer.loadVideoById(ids[k]);$("ytNote").textContent="다른 노래방 영상으로 다시 시도하는 중…"}else fallback()};
+    $("ytNote").textContent="영상을 재생하고 따라 불러요. 아래에 내 음정이 나와요.";
+    if(ytPlayer&&ytPlayer.loadVideoById){ytPlayer._onErr=onErr;ytPlayer.loadVideoById(ids[0])}
+    else{ytPlayer=new YT.Player("ytPlayer",{videoId:ids[0],playerVars:{playsinline:1,rel:0,origin:location.origin},events:{onError:()=>ytPlayer._onErr&&ytPlayer._onErr()}});ytPlayer._onErr=onErr}};
   load();
   try{await mic()}catch(e){$("ytNote").textContent="마이크를 허용하면 내 음정이 나와요.";return}
   if(!fRun){fRun=true;fTrail=[];fSec=0;fLast=performance.now();requestAnimationFrame(fLoop)}
