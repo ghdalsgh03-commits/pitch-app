@@ -107,12 +107,18 @@ section{display:grid;gap:16px}
     <button type="button" class="primary" id="go">퀘스트 도전</button>
     <p class="muted">이어폰을 끼면 더 정확해요. 처음 한 번 마이크 허용을 눌러 주세요.</p>
     <div class="row"><span class="muted">목소리</span><button type="button" class="vbtn" data-v="m" style="min-height:36px;padding:4px 14px">남성</button><button type="button" class="vbtn" data-v="f" style="min-height:36px;padding:4px 14px">여성</button><span class="muted" style="font-size:.78rem">여성은 한 옥타브 위 음으로 연습해요</span></div>
+    <div class="row"><span class="muted">연습 후 녹음</span><button type="button" class="rbtn" data-r="1" style="min-height:36px;padding:4px 14px">켜기</button><button type="button" class="rbtn" data-r="0" style="min-height:36px;padding:4px 14px">끄기</button></div>
   </div>
 
   <div class="card" id="drillCard" hidden>
     <div class="row" style="justify-content:space-between"><h2>특훈 · 내 약점</h2><span class="tag">퀘스트와 별도</span></div>
     <div class="weak" id="weakBox"></div>
     <button type="button" id="drillGo" style="width:100%;font-weight:700">약점 특훈 3분</button>
+  </div>
+
+  <div class="card" id="rangeCard" hidden>
+    <h2>내 노래 음역 · 잘 맞는 곡</h2>
+    <div id="rangeBox"></div>
   </div>
 
   <div class="card" id="progressCard" hidden>
@@ -184,6 +190,7 @@ section{display:grid;gap:16px}
       <div><small>버틴 비율</small><b id="dHold">–</b></div>
     </div>
     <p class="muted" id="doneExtra"></p>
+    <div id="dRange" style="text-align:left"></div>
     <button type="button" class="primary" id="home1">홈으로</button>
   </div>
 </section>
@@ -383,6 +390,8 @@ function renderHome(){
   }else if(s.length===1)$("headline").textContent="첫날 기록 완료! 내일부터 비교가 시작돼요.";
   $("go").textContent=done?(dailyStat().today?"일일 퀘스트 한 번 더":"일일 퀘스트 시작"):qs.streak?`이어서 도전 (${qs.streak}/${q.need})`:qs.tries?"퀘스트 다시 도전":"퀘스트 도전";
   renderDrill();
+  {const r=LS.get("range",null);$("rangeCard").hidden=!r;if(r)$("rangeBox").innerHTML=rangeHTML(r)}
+  document.querySelectorAll(".rbtn").forEach(b=>{const on=String(LS.get("recOn",true)?1:0)===b.dataset.r;b.style.background=on?"var(--accent)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"var(--accent)":"";b.onclick=()=>{LS.set("recOn",b.dataset.r==="1");renderHome()}});
   document.querySelectorAll(".vbtn").forEach(b=>{const on=LS.get("voice","m")===b.dataset.v;b.style.background=on?"var(--accent)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"var(--accent)":"";b.onclick=()=>{LS.set("voice",b.dataset.v);renderHome()}});
   // progress
   if(s.length){$("progressCard").hidden=false;const l=s[s.length-1],f=s[0];
@@ -428,13 +437,13 @@ function loop(){
     busy=true;gu=0;ding();const took=Math.max(0,(now-listenUntil-need())/1000);
     if(plan[pi].k==="match")res.match.push({n:Math.round(target),took,first:firstErr==null?tol:Math.abs(firstErr),f:firstErr});else res.hold.push({n:Math.round(target),took,ratio:holdAll?holdIn/holdAll:1,wob:sd(holdC)});
     holdT=-1e9;pi++;
-    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():toRecord()}else startItem()},700);
+    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():(LS.get("recOn",true)?toRecord():finish(null))}else startItem()},700);
   }else if(!busy&&now-listenUntil>GIVEUP+(plan[pi].k==="hold"?SQ.holdMs:0)){
     busy=true;gu++;
     // stuck too long: count as a miss and move on
     if(plan[pi].k==="match")res.match.push({n:Math.round(target),took:GIVEUP/1000,first:Math.max(tol,firstErr==null?100:Math.abs(firstErr)),f:firstErr==null?null:firstErr});else res.hold.push({n:Math.round(target),took:GIVEUP/1000,ratio:holdAll?holdIn/holdAll*0.5:0,wob:sd(holdC)??50});
     $("say").textContent="다음 음으로 넘어가요";holdT=-1e9;pi++;
-    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():toRecord()}else startItem()},700);
+    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():(LS.get("recOn",true)?toRecord():finish(null))}else startItem()},700);
   }
   requestAnimationFrame(loop);
 }
@@ -496,11 +505,12 @@ function toRecord(){
   show("record");
 }
 $("recBtn").onclick=()=>{
+  if(rec&&rec.state==="recording"){clearInterval(recTimer);rec.stop();return}
   if(!window.MediaRecorder){finish(null);return}
   const chunks=[];try{rec=new MediaRecorder(stream)}catch(e){finish(null);return}
   rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
   rec.onstop=()=>finish(new Blob(chunks,{type:rec.mimeType||"audio/webm"}));
-  rec.start();$("recBtn").disabled=true;$("recBtn").textContent="녹음 중…";let left=15;
+  rec.start();$("recBtn").disabled=true;$("recBtn").textContent="녹음 중…";setTimeout(()=>{if(rec&&rec.state==="recording"){$("recBtn").disabled=false;$("recBtn").textContent="녹음 끝내기"}},4000);let left=15;
   recTimer=setInterval(()=>{left--;$("recCount").textContent=left;if(left<=0){clearInterval(recTimer);rec.stop()}},1000);
 };
 $("recSkip").onclick=()=>{clearInterval(recTimer);if(rec&&rec.state==="recording"){rec.onstop=()=>finish(null);rec.stop()}else finish(null)};
@@ -508,6 +518,8 @@ $("recSkip").onclick=()=>{clearInterval(recTimer);if(rec&&rec.state==="recording
 /* ===== finish ===== */
 async function finish(blob){
   if(blob){if(!(await getClip("first"))){await putClip("first",blob);LS.set("recSong",SONGS[0])}await putClip("last",blob)}
+  $("dRange").innerHTML="";
+  if(blob){analyzeClip(blob).then(r=>{if(r){LS.set("range",r);$("dRange").innerHTML=rangeHTML(r)}else $("dRange").innerHTML='<p class="muted">녹음에서 노래 소리를 충분히 찾지 못해서 음역 분석은 건너뛰었어요.</p>'}).catch(()=>{})}
   const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
   const s=sessions(),q=SQ||curQuest();const wobs=res.hold.map(r=>r.wob).filter(x=>x!=null);
   const cur={at:Date.now(),q:q.id,tol:q.tol,match:res.match.length?{n:res.match.length,avgTook:avg(res.match.map(r=>r.took)),avgFirst:avg(res.match.map(r=>r.first))}:null,hold:res.hold.length?{n:res.hold.length,ratio:avg(res.hold.map(r=>r.ratio)),wob:wobs.length?avg(wobs):null}:null};
@@ -587,6 +599,25 @@ function fLoop(){
 }
 $("home2").onclick=()=>{fRun=false;try{ytPlayer&&ytPlayer.pauseVideo&&ytPlayer.pauseVideo()}catch(e){}show("home");renderHome()};
 
+/* ===== range from recording & song match ===== */
+const SONG_DB=[["서른 즈음에","김광석","E4"],["이등병의 편지","김광석","D4"],["거리에서","김광석","E4"],["사랑했지만","김광석","F4"],["걱정말아요 그대","이적","E4"],["두 사람","성시경","F#4"],["거리에서","성시경","G4"],["너의 모든 순간","성시경","G4"],["기억의 습작","전람회","F#4"],["취중진담","전람회","G#4"],["감사","김동률","G4"],["모든 날, 모든 순간","폴킴","G#4"],["좋니","윤종신","A4"],["야생화","박효신","B4"]];
+async function analyzeClip(blob){
+  const buf=await blob.arrayBuffer();await audio();
+  const dec=await new Promise((res,rej)=>{try{const p=ac.decodeAudioData(buf.slice(0),res,rej);if(p&&p.then)p.then(res,rej)}catch(e){rej(e)}});
+  const SR=16000,len=Math.ceil(dec.duration*SR),oc=new OfflineAudioContext(1,len,SR),src=oc.createBufferSource();src.buffer=dec;src.connect(oc.destination);src.start();
+  const x=(await oc.startRendering()).getChannelData(0),F=1024,H=512,ms=[];
+  for(let i=0;i+F<x.length;i+=H){const f=yin(x.subarray(i,i+F),SR);if(f&&f>65&&f<1000)ms.push(69+12*Math.log2(f/440))}
+  if(ms.length<30)return null;ms.sort((a,b)=>a-b);const q=p=>ms[Math.min(ms.length-1,Math.floor(p*ms.length))];
+  return {lo:Math.round(q(.05)),mid:Math.round(q(.5)),hi:Math.round(q(.95)),at:Date.now()};
+}
+function rangeHTML(r){
+  const fem=LS.get("voice","m")==="f",top=r.hi+1;
+  const type=fem?(r.hi<=M("C5")?"저음":r.hi<=M("E5")?"중음":"고음"):(r.hi<=M("E4")?"저음":r.hi<=M("G4")?"중음":"고음");
+  const list=SONG_DB.map(([t,a,n])=>{const T=M(n)+(fem?12:0);return {t,a,k:Math.max(-6,Math.min(6,top-T))}}).sort((x,y)=>(x.k>=0?0:1)-(y.k>=0?0:1)||Math.abs(x.k)-Math.abs(y.k)).slice(0,6);
+  return `<p style="margin:0"><b>${koName(r.lo)} ~ ${koName(r.hi)}</b> · 중심 ${koName(r.mid)} · <b>${fem?"여성":"남성"} ${type}</b></p>
+  <ul class="conds" style="margin-top:8px">${list.map(x=>`<li class="${x.k>=0?"ok":"ng"}"><span>${x.t} · ${x.a}</span><b>${x.k>=0?"원키 OK":"키 "+x.k+" 추천"}</b></li>`).join("")}</ul>
+  <p class="muted" style="margin:6px 0 0">방금 녹음 기준이에요. 곡 최고음은 대략값이라 노래방에서 한 번 불러 보고 키를 맞추세요. 자신 있는 노래로 녹음할수록 정확해져요.</p>`;
+}
 /* ===== boot ===== */
 renderHome();
 if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("sw.js").catch(()=>{});
