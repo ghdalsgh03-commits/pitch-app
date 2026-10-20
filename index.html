@@ -328,10 +328,15 @@ function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}">
 /* ===== audio ===== */
 let ac=null,stream=null,an=null,buf=null;
 async function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")await ac.resume();return ac}
-async function mic(){try{if(navigator.audioSession)navigator.audioSession.type="play-and-record"}catch(e){}await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)}}
+async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)};try{await ac.resume()}catch(e){}}
 function yin(b,sr){const W=b.length>>1,tmin=Math.floor(sr/900),tmax=Math.min(W-1,Math.ceil(sr/65));let e=0;for(let i=0;i<W;i++)e+=b[i]*b[i];if(Math.sqrt(e/W)<0.008)return null;const d=new Float32Array(tmax+1),dn=new Float32Array(tmax+1);for(let t=tmin;t<=tmax;t++){let s=0;for(let i=0;i<W;i++){const a=b[i]-b[i+t];s+=a*a}d[t]=s}let run=0,best=-1;for(let t=tmin;t<=tmax;t++){run+=d[t];dn[t]=run?d[t]*(t-tmin+1)/run:1}for(let t=tmin+1;t<tmax;t++){if(dn[t]<0.15){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0)return null;const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
 function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>65&&f<1000?69+12*Math.log2(f/440):null}
-function tone(m,d){const o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=hz(m);const t=ac.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.03);g.gain.setValueAtTime(.25,t+d-.06);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
+let PW=null;
+function tone(m,d){if(ac.state!=="running"){try{ac.resume()}catch(e){}}
+  if(!PW){const n=8,re=new Float32Array(n+1),im=new Float32Array(n+1);for(let h=1;h<=n;h++)im[h]=1/Math.pow(h,1.1);PW=ac.createPeriodicWave(re,im)}
+  const o=ac.createOscillator(),g=ac.createGain(),lp=ac.createBiquadFilter();o.setPeriodicWave(PW);o.frequency.value=hz(m);lp.type="lowpass";lp.frequency.value=3500;
+  const t=ac.currentTime,v=.55;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.setValueAtTime(v,t+d-.08);g.gain.linearRampToValueAtTime(0,t+d);
+  o.connect(lp).connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
 function ding(){const t=ac.currentTime;[1047,1319].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.18,t+i*.12+.01);g.gain.exponentialRampToValueAtTime(.001,t+i*.12+.4);o.connect(g).connect(ac.destination);o.start(t+i*.12);o.stop(t+i*.12+.45)})}
 
 /* ===== songs ===== */
