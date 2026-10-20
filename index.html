@@ -335,9 +335,9 @@ function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}">
 /* ===== audio ===== */
 let ac=null,stream=null,an=null,buf=null;
 async function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")await ac.resume();return ac}
-async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)};try{await ac.resume()}catch(e){}}
-function yin(b,sr){const W=b.length>>1,tmin=Math.floor(sr/900),tmax=Math.min(W-1,Math.ceil(sr/65));let e=0;for(let i=0;i<W;i++)e+=b[i]*b[i];if(Math.sqrt(e/W)<0.008)return null;const d=new Float32Array(tmax+1),dn=new Float32Array(tmax+1);for(let t=tmin;t<=tmax;t++){let s=0;for(let i=0;i<W;i++){const a=b[i]-b[i+t];s+=a*a}d[t]=s}let run=0,best=-1;for(let t=tmin;t<=tmax;t++){run+=d[t];dn[t]=run?d[t]*(t-tmin+1)/run:1}for(let t=tmin+1;t<tmax;t++){if(dn[t]<0.15){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0)return null;const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
-function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>65&&f<1000?69+12*Math.log2(f/440):null}
+async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=4096;s.connect(an);buf=new Float32Array(an.fftSize)};try{await ac.resume()}catch(e){}}
+function yin(b,sr){let k=sr>30000?2:1,n=Math.floor(b.length/k),x=b;if(k>1){x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=(b[2*i]+b[2*i+1])*.5;sr/=2}const W=n>>1,tmin=Math.max(2,Math.floor(sr/1000)),tmax=Math.min(W-1,Math.ceil(sr/48));let e=0;for(let i=0;i<W;i++)e+=x[i]*x[i];if(Math.sqrt(e/W)<0.006)return null;const d=new Float32Array(tmax+2);for(let t=1;t<=tmax+1;t++){let s=0;for(let i=0;i<W;i++){const a=x[i]-x[i+t];s+=a*a}d[t]=s}const dn=new Float32Array(tmax+2);dn[0]=1;let run=0;for(let t=1;t<=tmax+1;t++){run+=d[t];dn[t]=run?d[t]*t/run:1}let best=-1;for(let t=tmin;t<tmax;t++){if(dn[t]<0.12){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0){let mv=1;for(let t=tmin;t<tmax;t++)if(dn[t]<mv&&dn[t]<=dn[t-1]&&dn[t]<=dn[t+1]){mv=dn[t];best=t}if(mv>0.3)return null}const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
+function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>48&&f<1000?69+12*Math.log2(f/440):null}
 let PW=null;
 function tone(m,d){if(ac.state!=="running"){try{ac.resume()}catch(e){}}
   if(!PW){const n=8,re=new Float32Array(n+1),im=new Float32Array(n+1);for(let h=1;h<=n;h++)im[h]=1/Math.pow(h,1.1);PW=ac.createPeriodicWave(re,im)}
@@ -606,7 +606,7 @@ async function analyzeClip(blob){
   const dec=await new Promise((res,rej)=>{try{const p=ac.decodeAudioData(buf.slice(0),res,rej);if(p&&p.then)p.then(res,rej)}catch(e){rej(e)}});
   const SR=16000,len=Math.ceil(dec.duration*SR),oc=new OfflineAudioContext(1,len,SR),src=oc.createBufferSource();src.buffer=dec;src.connect(oc.destination);src.start();
   const x=(await oc.startRendering()).getChannelData(0),F=1024,H=512,ms=[];
-  for(let i=0;i+F<x.length;i+=H){const f=yin(x.subarray(i,i+F),SR);if(f&&f>65&&f<1000)ms.push(69+12*Math.log2(f/440))}
+  for(let i=0;i+F<x.length;i+=H){const f=yin(x.subarray(i,i+F),SR);if(f&&f>48&&f<1000)ms.push(69+12*Math.log2(f/440))}
   if(ms.length<30)return null;ms.sort((a,b)=>a-b);const q=p=>ms[Math.min(ms.length-1,Math.floor(p*ms.length))];
   return {lo:Math.round(q(.05)),mid:Math.round(q(.5)),hi:Math.round(q(.95)),at:Date.now()};
 }
