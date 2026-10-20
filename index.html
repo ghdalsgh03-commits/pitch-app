@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#3D45A8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="음정연습">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>음정연습</title>
+<style>
+:root{--bg:#EEF0F4;--surface:#FAFBFC;--ink:#1B1E27;--muted:#5A6070;--line:#D3D7E0;--accent:#3D45A8;--accent-soft:#E2E4F6;--warm:#B5651D;--warm-soft:#F6E9DC;--good:#2E7D5B;--good-soft:#DDF0E6;--band:#C9EBD9}
+@media (prefers-color-scheme:dark){:root{--bg:#14161D;--surface:#1C1F28;--ink:#E7E9F0;--muted:#A0A6B6;--line:#2E3240;--accent:#9DA4F2;--accent-soft:#272B4A;--warm:#E5A468;--warm-soft:#3A2A1C;--good:#7FD1A8;--good-soft:#1E3A2D;--band:#1F4A35;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:16px;line-height:1.55;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) max(16px,env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 40px) max(16px,env(safe-area-inset-left));display:grid;gap:16px}
+h1{font-size:1.4rem;margin:0}h2{font-size:1.05rem;margin:0}
+p{margin:0}
+.muted{color:var(--muted);font-size:.88rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px}
+button{font:inherit;cursor:pointer;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:12px 16px;min-height:48px}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;font-size:1.15rem;min-height:64px;width:100%}
+button.ghost{background:transparent}
+button:disabled{opacity:.5}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.headline{font-size:1.25rem;font-weight:700;line-height:1.4}
+.headline em{font-style:normal;color:var(--good)}
+.streak{display:grid;grid-template-columns:repeat(14,1fr);gap:4px}
+.streak i{aspect-ratio:1;border-radius:4px;background:var(--line)}
+.streak i.on{background:var(--good)}
+.streak i.today{outline:2px solid var(--accent);outline-offset:1px}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stat div{border:1px solid var(--line);border-radius:12px;padding:8px 4px}
+.stat small{display:block;color:var(--muted);font-size:.75rem}
+.stat b{font-size:1.25rem;font-variant-numeric:tabular-nums}
+.songs{display:grid;gap:8px}
+.song{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;width:100%}
+.song small{color:var(--muted)}
+.song.locked{opacity:.45}
+/* session screen */
+.stage{display:grid;gap:10px;text-align:center}
+.step-label{font-size:.85rem;color:var(--muted)}
+.target{font-size:3.4rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.say{font-size:1.25rem;font-weight:700;min-height:1.6em}
+.say.ok{color:var(--good)}.say.off{color:var(--warm)}
+.meter{height:14px;background:var(--line);border-radius:7px;overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:var(--good)}
+canvas{width:100%;height:200px;background:var(--bg);border-radius:12px;display:block}
+.dots{display:flex;justify-content:center;gap:6px}
+.dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dots i.done{background:var(--good)}
+.big-msg{font-size:1.6rem;font-weight:800;text-align:center;line-height:1.3}
+.yt{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.yt iframe,.yt>div{position:absolute;inset:0;width:100%;height:100%;border:0}
+section{display:grid;gap:16px}
+[hidden]{display:none!important}
+.tag{display:inline-block;font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.quest{border:2px solid var(--accent);border-radius:14px;padding:14px;display:grid;gap:10px;background:var(--accent-soft)}
+.quest.boss{border-color:var(--warm);background:var(--warm-soft)}
+.qname{font-size:1.15rem;font-weight:800}
+.conds{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.conds li{display:flex;justify-content:space-between;gap:8px;font-size:.92rem}
+.conds li b{font-variant-numeric:tabular-nums}
+.conds li.ok b{color:var(--good)}.conds li.ng b{color:var(--warm)}
+.pips{display:flex;gap:6px;align-items:center}
+.pips i{width:22px;height:8px;border-radius:4px;background:var(--line)}
+.pips i.on{background:var(--good)}
+.qmap{display:grid;gap:10px}
+.chap{display:grid;gap:6px}
+.chap h3{font-size:.9rem;margin:0;color:var(--muted)}
+.nodes{display:flex;flex-wrap:wrap;gap:6px}
+.node{font-size:.82rem;padding:6px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+.node.done{background:var(--good-soft);border-color:var(--good);color:var(--good)}
+.node.now{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.node.lock{opacity:.5}
+.result{font-size:1.7rem;font-weight:800;text-align:center}
+.result.pass{color:var(--good)}.result.fail{color:var(--warm)}
+.rank{display:flex;align-items:center;justify-content:center;gap:12px}
+.rank b{font-size:3.2rem;font-weight:900;line-height:1;width:72px;height:72px;border-radius:18px;display:grid;place-items:center;color:#fff;background:var(--muted)}
+.rank b.S{background:linear-gradient(135deg,#C9A227,#E8C766)}.rank b.A{background:var(--good)}.rank b.B{background:var(--accent)}.rank b.C{background:var(--warm)}.rank b.F{background:#8A3B3B}
+.rank span{text-align:left;font-size:.9rem;color:var(--muted)}
+.rank span strong{display:block;font-size:1.3rem;color:var(--ink)}
+.node em{font-style:normal;font-weight:800;margin-left:4px}
+.weak{display:grid;gap:6px}
+.weak .chip{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--warm-soft);color:var(--warm);font-weight:700;margin-right:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HOME -->
+<section id="home">
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h1>음정연습</h1><span class="tag" id="lvTag">1장</span></div>
+    <p class="headline" id="headline">첫 퀘스트부터 시작해요. 5분이면 돼요.</p>
+    <div class="quest" id="questBox">
+      <div class="row" style="justify-content:space-between"><span class="tag" id="qId">퀘스트 1-1</span><span class="muted" id="qTries"></span></div>
+      <div class="qname" id="qName"></div>
+      <p class="muted" id="qDesc"></p>
+      <ul class="conds" id="qConds"></ul>
+      <div class="row"><span class="muted">연속 통과</span><div class="pips" id="qPips"></div></div>
+    </div>
+    <div class="streak" id="streak" aria-label="최근 14일 연습"></div>
+    <p class="muted" id="streakText"></p>
+    <button type="button" class="primary" id="go">퀘스트 도전</button>
+    <p class="muted">이어폰을 끼면 더 정확해요. 처음 한 번 마이크 허용을 눌러 주세요.</p>
+  </div>
+
+  <div class="card" id="drillCard" hidden>
+    <div class="row" style="justify-content:space-between"><h2>특훈 · 내 약점</h2><span class="tag">퀘스트와 별도</span></div>
+    <div class="weak" id="weakBox"></div>
+    <button type="button" id="drillGo" style="width:100%;font-weight:700">약점 특훈 3분</button>
+  </div>
+
+  <div class="card" id="progressCard" hidden>
+    <h2>얼마나 늘었나</h2>
+    <div class="stat">
+      <div><small>음 찾는 시간</small><b id="sTime">–</b></div>
+      <div><small>첫 소리 오차</small><b id="sFirst">–</b></div>
+      <div><small>연습한 날</small><b id="sDays">–</b></div>
+    </div>
+    <div class="compare">
+      <button type="button" id="playFirst">▶ 첫날 녹음</button>
+      <button type="button" id="playLast">▶ 최근 녹음</button>
+    </div>
+    <p class="muted" id="cmpNote">같은 소절을 첫날과 최근에 녹음한 거예요. 번갈아 들어 보세요.</p>
+  </div>
+
+  <div class="card">
+    <h2>퀘스트 지도</h2>
+    <p class="muted">조건을 연속으로 통과해야 다음으로 넘어가요. 한 번이라도 실패하면 연속 기록은 처음부터예요.</p>
+    <div class="qmap" id="qmap"></div>
+  </div>
+
+  <div class="card">
+    <h2>노래 연습</h2>
+    <p class="muted">연습할수록 다음 곡이 열려요. 누르면 노래방 영상과 내 음정이 같이 나와요.</p>
+    <div class="songs" id="songs"></div>
+  </div>
+</section>
+
+<!-- SESSION -->
+<section id="session" hidden>
+  <div class="card stage">
+    <div class="row" style="justify-content:space-between"><span class="step-label" id="stepLabel">1/3 음 맞추기</span><button type="button" class="ghost" id="quit" style="min-height:36px;padding:4px 10px">그만하기</button></div>
+    <div class="dots" id="dots"></div>
+    <div class="muted" id="instr">들은 음을 '아~'로 따라 내요</div>
+    <div class="target" id="target">–</div>
+    <div class="say" id="say"> </div>
+    <div class="meter"><i id="hold"></i></div>
+    <canvas id="cv" width="1000" height="400" aria-label="내 음높이"></canvas>
+    <button type="button" id="replay">목표 음 다시 듣기</button>
+  </div>
+</section>
+
+<!-- RECORD -->
+<section id="record" hidden>
+  <div class="card stage">
+    <span class="step-label">3/3 오늘의 소절 녹음</span>
+    <p class="big-msg" id="recTitle">「서른 즈음에」 첫 소절</p>
+    <p class="muted" id="recHint">반주 없이 편하게 15초 불러요. 매일 같은 소절을 녹음해서 첫날과 비교해요.</p>
+    <div class="target" id="recCount">15</div>
+    <button type="button" class="primary" id="recBtn">녹음 시작</button>
+    <button type="button" id="recSkip">건너뛰기</button>
+  </div>
+</section>
+
+<!-- DONE -->
+<section id="done" hidden>
+  <div class="card stage">
+    <p class="muted" id="doneTitle">퀘스트 결과</p>
+    <div class="rank" id="dRankBox"><b id="dRank">–</b><span>성공률<strong id="dRate">–</strong><em id="dBest" style="font-style:normal"></em></span></div>
+    <p class="result" id="dResult"></p>
+    <ul class="conds" id="dConds" style="text-align:left"></ul>
+    <div class="row" id="dPipsRow" style="justify-content:center"><span class="muted">연속 통과</span><div class="pips" id="dPips"></div></div>
+    <p class="headline" id="doneLine"></p>
+    <div class="stat">
+      <div><small>음 찾는 시간</small><b id="dTime">–</b></div>
+      <div><small>첫 소리 오차</small><b id="dFirst">–</b></div>
+      <div><small>버틴 비율</small><b id="dHold">–</b></div>
+    </div>
+    <p class="muted" id="doneExtra"></p>
+    <button type="button" class="primary" id="home1">홈으로</button>
+  </div>
+</section>
+
+<!-- SING -->
+<section id="sing" hidden>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h2 id="singTitle">노래</h2><button type="button" class="ghost" id="home2" style="min-height:36px;padding:4px 10px">홈</button></div>
+    <div class="yt"><div id="ytPlayer"></div></div>
+    <p class="muted" id="ytNote">영상을 재생하고 따라 불러요. 아래에 내 음정이 나와요.</p>
+    <div class="stat"><div><small>지금 내 음</small><b id="fCur">–</b></div><div><small>음 흔들림</small><b id="fWob">–</b></div><div><small>부른 시간</small><b id="fSec">0초</b></div></div>
+    <canvas id="fCv" width="1000" height="360" aria-label="최근 10초 내 음높이"></canvas>
+  </div>
+</section>
+
+</div>
+<script>
+"use strict";
+/* ===== basics ===== */
+const NAMES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const M=n=>{const m=n.match(/^([A-G]#?)(\d)$/);return NAMES.indexOf(m[1])+12*(+m[2]+1)};
+const nameOf=m=>{const r=Math.round(m);return NAMES[((r%12)+12)%12].replace("#","♯")+(Math.floor(r/12)-1)};
+const hz=m=>440*Math.pow(2,(m-69)/12);
+const $=id=>document.getElementById(id);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const dayKey=d=>{d=new Date(d);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
+function show(id){["home","session","record","done","sing"].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)}
+
+/* ===== storage ===== */
+const LS={get(k,d){try{const v=localStorage.getItem("pp:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("pp:"+k,JSON.stringify(v))}catch(e){}}};
+let db=null;
+function idb(){return new Promise(res=>{if(db)return res(db);try{const r=indexedDB.open("pp",1);r.onupgradeneeded=()=>r.result.createObjectStore("clips");r.onsuccess=()=>{db=r.result;res(db)};r.onerror=()=>res(null)}catch(e){res(null)}})}
+async function putClip(k,blob){const d=await idb();if(!d)return;return new Promise(r=>{const t=d.transaction("clips","readwrite");t.objectStore("clips").put(blob,k);t.oncomplete=r;t.onerror=r})}
+async function getClip(k){const d=await idb();if(!d)return null;return new Promise(r=>{const q=d.transaction("clips").objectStore("clips").get(k);q.onsuccess=()=>r(q.result||null);q.onerror=()=>r(null)})}
+
+/* sessions: {at, q, pass, match:{n,avgTook,avgFirst}, hold:{n,ratio,wob}, tol} */
+const sessions=()=>LS.get("sessions",[]);
+
+/* ===== quests ===== */
+const P1=["D3","E3","F3","G3","A3","B3","C4"], P2=["A2","B2","C3","D3","E3","F3","G3","A3","B3","C4","D4","E4"];
+const CHAPTERS={1:"1장 · 음정 잡기",2:"2장 · 흔들림 없이",3:"3장 · 음역 넓히기"};
+const QUESTS=[
+ {id:"1-1",ch:1,name:"들은 음 따라 내기",desc:"띠 ±50센트. 들은 음을 바로 따라 내는 감을 잡아요.",tol:50,pool:P1,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",2.0],["first","<=",35]]},
+ {id:"1-2",ch:1,name:"좁아진 띠",desc:"띠가 ±30센트로 좁아져요. 대충 비슷한 음은 이제 안 통해요.",tol:30,pool:P1,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",1.5],["first","<=",25]]},
+ {id:"1-3",ch:1,name:"넓어진 음",desc:"낮은 음과 높은 음이 섞여 나와요. 음 사이 거리감을 익혀요.",tol:30,pool:P2,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",1.5],["first","<=",25]]},
+ {id:"1-4",ch:1,boss:true,name:"보스 · 첫 소리 명중",desc:"띠 ±15센트. 첫 소리부터 맞혀야 해요. 3번 연속 통과해야 1장 클리어.",tol:15,pool:P1,match:8,hold:4,holdMs:4000,need:3,conds:[["took","<=",1.5],["first","<=",15]]},
+ {id:"2-1",ch:2,name:"6초 버티기",desc:"한 음을 6초 동안 띠 안에서 유지해요. 숨을 아껴 써요.",tol:30,pool:P1,match:4,hold:5,holdMs:6000,need:2,conds:[["ratio",">=",85],["wob","<=",20]]},
+ {id:"2-2",ch:2,name:"10초 버티기",desc:"띠 ±25센트, 10초. 끝에서 음이 처지지 않게 해요.",tol:25,pool:P1,match:4,hold:4,holdMs:10000,need:2,conds:[["ratio",">=",85],["wob","<=",15]]},
+ {id:"2-3",ch:2,boss:true,name:"보스 · 15초 롱톤",desc:"띠 ±20센트, 15초, 넓은 음역. 3번 연속 통과해야 2장 클리어.",tol:20,pool:P2,match:3,hold:3,holdMs:15000,need:3,conds:[["ratio",">=",85],["wob","<=",12]]}
+];
+const CL={took:["음 찾는 시간","초",1],first:["첫 소리 오차","센트",0],ratio:["띠 안에서 버틴 비율","%",0],wob:["음 흔들림","센트",0]};
+function qstate(){return LS.get("quest",{i:0,streak:0,tries:0})}
+function curQuest(){return QUESTS[Math.min(qstate().i,QUESTS.length-1)]}
+function allClear(){return qstate().i>=QUESTS.length}
+function level(){const q=curQuest();return {tol:q.tol,q}}
+function metric(cur,k){if(k==="took")return cur.match?cur.match.avgTook:null;if(k==="first")return cur.match?cur.match.avgFirst:null;if(k==="ratio")return cur.hold?cur.hold.ratio*100:null;if(k==="wob")return cur.hold?cur.hold.wob:null}
+function condText(c){const [k,op,v]=c,L=CL[k];return `${L[0]} ${v.toFixed(L[2])}${L[1]} ${op==="<="?"이하":"이상"}`}
+function condRows(q,cur){return q.conds.map(c=>{const [k,op,v]=c,L=CL[k];if(!cur)return `<li><span>${condText(c)}</span><b></b></li>`;const x=metric(cur,k),ok=x!=null&&(op==="<="?x<=v:x>=v);return `<li class="${ok?"ok":"ng"}"><span>${L[0]} (목표 ${v.toFixed(L[2])}${L[1]} ${op==="<="?"이하":"이상"})</span><b>${x==null?"–":x.toFixed(L[2])+L[1]} ${ok?"✓":"✗"}</b></li>`}).join("")}
+function judge(q,cur){return q.conds.every(([k,op,v])=>{const x=metric(cur,k);return x!=null&&(op==="<="?x<=v:x>=v)})}
+/* ===== NPC lines ===== */
+const LINES={
+ took:["음 찾다가 해 지겠다. 귀는 이미 알고 있어, 목만 늦게 출발했을 뿐.","내비가 '경로를 재탐색합니다'만 반복하는 중이야.","정답은 1초 거리에 있었어. 넌 산책을 갔고.","생각은 그만. 듣자마자 바로 던져 봐.","음을 찾는 게 아니라 음이랑 숨바꼭질했네."],
+ first:["첫 소리가 옆집 초인종을 눌렀어. 동은 맞는데 호수가 틀렸어.","출발은 좋았는데 방향이 반 칸 빗나갔어.","대충 근처 찍고 나중에 맞추는 거, 그래프에 다 보여.","다트로 치면 보드는 맞혔어. 이제 가운데.","첫 소리는 계약서 첫 줄이야. 거기서 틀리면 뒤가 다 피곤해."],
+ ratio:["버티기라며. 음이 먼저 퇴근했어.","시작은 장군, 끝은 졸병.","숨이 바닥나니까 음도 같이 바닥났네.","4초까진 가수, 그 뒤론 바람 빠진 풍선."],
+ wob:["음이 롤러코스터 탔어. 여기 놀이공원 아니야.","흔들리는 건 갈대만으로 충분해.","직선을 그려야 하는데 지금 물결무늬야.","떨리는 게 비브라토면 좋겠는데, 이건 그냥 불안이야."],
+ near:["이 정도 차이로 떨어지면 더 약 오르지? 그게 정상이야. 한 판 더.","문턱에 발가락 걸렸어. 다음 판이면 넘어.","종이 한 장 차이. 근데 그 종이가 문이야."],
+ boss:["보스는 원래 한 번에 안 비켜줘. 패턴은 이미 봤잖아.","끝판왕이 이렇게 쉬우면 서운하지.","보스가 웃고 있어. 다음엔 표정 바꿔 줘."],
+ broke:["아, 연속 기록 날아갔다. 아깝지? 그 아까움 기억해 둬.","다 쌓은 탑을 마지막에 툭. 다시 쌓으면 더 빨라."],
+ many:["도전 {n}회째. 포기 안 한 것만으로 이미 대부분보다 앞이야. 근데 통과는 아직이야.","{n}번 막혔으면 이제 이 퀘스트가 너한테 질려야 할 차례야.","{n}회째 문 두드리는 중. 이 문 생각보다 얇아."],
+ pass:["좋아, 한 번 더. 이번 게 우연이 아니란 걸 증명해.","통과. 근데 '연속'이 진짜 시험이야.","감 잡았네. 식기 전에 바로 한 판 더.","방금 그 느낌 그대로. 몸이 기억할 때까지."],
+ clear:["문 열렸다. 귀가 드디어 목한테 말을 걸기 시작했어.","클리어. 어제의 네가 못 넘던 선을 오늘 넘었어.","이 퀘스트, 처음엔 벽이었지? 이제 그냥 계단이야.","깼다. 이 맛에 하는 거야. 다음 문 앞으로."],
+ ch1:["1장 끝. 이제 '음치'라는 말은 너한테 안 맞아.","1장 보스 격파. 노래방 첫 소절이 달라질 거야."],
+ dailyS:["S랭크. 유지가 아니라 아직도 늘고 있네.","오늘 컨디션 그대로 노래방 가도 돼.","완벽. 내일도 이 기준이야."],
+ dailyGood:["오늘 할당량 끝. 이 5분이 실력을 지키는 거야.","무난하게 클리어. 무난한 게 제일 어려운 거야.","오늘도 출석. 안 빠지는 사람이 결국 이겨."],
+ dailyBad:["오늘은 목이 덜 풀렸나 봐. 내일은 핑계 없이.","하루 삐끗한 건 괜찮아. 이틀 연속이면 그때부터 녹이야.","점수는 별로여도 온 건 잘했어. 근데 점수도 챙기자."],
+ rust:["실력이 녹슬고 있어. 깬 퀘스트가 아깝지 않게 특훈부터 해.","최근 세 판이 다 B 아래야. 쉬는 사이 귀가 게을러졌어.","녹스는 건 순식간이야. 지금 잡으면 하루면 돌아와."],
+ drillGood:["약점이라며? 방금 건 강점 같은데.","잡았다. 이 음은 이제 네 편이야.","특훈 효과 확인. 이제 퀘스트 가서 증명해."],
+ drillBad:["약점은 원래 한 번에 안 풀려. 어디로 빗나가는지는 오늘 똑똑히 봤잖아.","이 음이랑 아직 안 친하네. 내일 또 만나.","약점을 피하지 않고 찾아온 것부터 이미 반은 한 거야."],
+ ch2:["15초 롱톤 격파. 노래방에서 마지막 음 길게 끄는 사람, 이제 너야.","2장 끝. 흔들리던 음이 이제 기둥이 됐어."]
+};
+function pick(k,n){const a=LINES[k],last=LS.get("lastLine","");let c=a.filter(x=>x!==last);if(!c.length)c=a;const t=c[Math.floor(Math.random()*c.length)];LS.set("lastLine",t);return t.replace("{n}",n)}
+function failLine(q,cur,tries,hadStreak){
+  let worst=null,wr=0,near=true;
+  q.conds.forEach(([k,op,v])=>{const x=metric(cur,k);if(x==null)return;const bad=op==="<="?x>v:x<v;if(!bad)return;const r=op==="<="?x/v:v/Math.max(x,1);if(r>1.15)near=false;if(r>wr){wr=r;worst=k}});
+  if(hadStreak>0)return pick("broke");
+  if(tries>=5&&tries%3===2)return pick("many",tries);
+  if(near&&worst)return pick("near");
+  if(q.boss&&Math.random()<.4)return pick("boss");
+  return pick(worst||"first");
+}
+/* ===== daily quest (unlocks after all quests) ===== */
+const DAILY={id:"daily",daily:true,name:"일일 퀘스트",tol:20,pool:P2,match:6,hold:2,holdMs:8000,need:1,conds:[["took","<=",1.5],["first","<=",20],["ratio",">=",85],["wob","<=",15]]};
+const dailies=()=>sessions().filter(x=>x.q==="daily");
+function dailyStat(){const d=dailies(),today=dayKey(Date.now()),td=d.filter(x=>dayKey(x.at)===today),wk=d.filter(x=>Date.now()-x.at<7*864e5),wkAvg=wk.length?Math.round(wk.reduce((a,x)=>a+x.rate,0)/wk.length):null;
+  const days7=[];for(let i=6;i>=0;i--){const t=new Date();t.setDate(t.getDate()-i);days7.push(d.some(x=>dayKey(x.at)===dayKey(t)))}
+  const last3=d.slice(-3),rust=last3.length===3&&last3.reduce((a,x)=>a+x.rate,0)/3<70;
+  return {today:td.length?td[td.length-1]:null,wkAvg,days7,rust,count:d.length}}
+function buildDaily(){SQ=Object.assign({},DAILY);const p=[];for(let i=0;i<SQ.match;i++)p.push({k:"match"});for(let i=0;i<SQ.hold;i++)p.push({k:"hold"});
+  const a=analyze();const w=a&&a.weak.length?a.weak:[];for(let i=0;i<2;i++)p.push({k:"match",note:w.length?NM(w[i%w.length].n):null,weak:!!w.length});
+  return p}
+/* ===== rank & weakness ===== */
+const NM=m=>NAMES[((m%12)+12)%12]+(Math.floor(m/12)-1);
+function rankOf(r){return r>=95?"S":r>=85?"A":r>=70?"B":r>=50?"C":"F"}
+const RORD="FCBAS";
+function itemOk(q,it){const c={};q.conds.forEach(([k,op,v])=>c[k]=v);
+  if(it.k==="m")return it.took<=(c.took??2.0)&&Math.abs(it.f??999)<=(c.first??q.tol);
+  return it.ratio*100>=(c.ratio??80)&&(it.wob==null||it.wob<=(c.wob??25))}
+function analyze(){
+  const s=sessions().filter(x=>x.items).slice(-10),its=[];s.forEach(x=>x.items.forEach(i=>{if(i.k==="m")its.push(i)}));
+  if(its.length<12)return null;
+  const by={};its.forEach(i=>{(by[i.n]=by[i.n]||[]).push(i)});
+  const rows=Object.keys(by).map(n=>{const a=by[n];const miss=a.filter(i=>!i.ok).length/a.length,fe=a.filter(i=>i.f!=null),err=fe.length?fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length:50,bias=fe.length?fe.reduce((x,i)=>x+i.f,0)/fe.length:0,took=a.reduce((x,i)=>x+i.took,0)/a.length;return {n:+n,cnt:a.length,miss,err,bias,took,score:miss*100+err}}).filter(r=>r.cnt>=2).sort((a,b)=>b.score-a.score);
+  const allMiss=its.filter(i=>!i.ok).length/its.length;
+  const weak=rows.filter(r=>r.miss>0||r.err>15).slice(0,3);
+  const fe=its.filter(i=>i.f!=null),bias=fe.length?fe.reduce((x,i)=>x+i.f,0)/fe.length:0,slow=its.filter(i=>i.took>1.5).length/its.length,off=fe.filter(i=>Math.abs(i.f)>25).length/Math.max(1,fe.length);
+  return {weak,bias,slow,off,allMiss,rows}}
+function renderDrill(){
+  const a=analyze();if(!a||!a.weak.length){$("drillCard").hidden=true;return}
+  $("drillCard").hidden=false;
+  const tips=[];
+  if(Math.abs(a.bias)>8)tips.push(a.bias<0?`전체적으로 <b>낮게 내는 버릇</b>이 있어요 (평균 ${Math.round(a.bias)}센트). 낼 때 살짝 위를 노리세요.`:`전체적으로 <b>높게 내는 버릇</b>이 있어요 (평균 +${Math.round(a.bias)}센트). 힘 빼고 살짝 아래를 노리세요.`);
+  if(a.slow>a.off&&a.slow>.2)tips.push(`음을 <b>늦게 찾는 편</b>이에요. 듣자마자 바로 소리부터 내세요. 틀려도 화면이 고쳐 줘요.`);
+  else if(a.off>.2)tips.push(`<b>첫 소리가 빗나가는 편</b>이에요. 소리 내기 전 속으로 음을 한 번 떠올리고 내세요.`);
+  const low=a.weak.filter(r=>r.n<M("F3")).length,high=a.weak.filter(r=>r.n>M("A3")).length;
+  if(low>=2)tips.push("약한 음이 <b>낮은 쪽</b>에 몰려 있어요. 낮은 음은 목을 누르지 말고 편하게 떨어뜨리세요.");
+  if(high>=2)tips.push("약한 음이 <b>높은 쪽</b>에 몰려 있어요. 높은 음은 소리를 키우지 말고 가볍게 올리세요.");
+  $("weakBox").innerHTML=`<div>${a.weak.map(r=>`<span class="chip">${nameOf(r.n)}</span>`).join("")}</div>`+
+   `<p class="muted">${a.weak.map(r=>`${nameOf(r.n)}: 실패 ${Math.round(r.miss*100)}% · 오차 ${Math.round(r.err)}센트${Math.abs(r.bias)>8?(r.bias<0?" (낮게)":" (높게)"):""}`).join("<br>")}</p>`+
+   (tips.length?`<p style="margin:0">${tips.join("<br>")}</p>`:"")+`<p class="muted">이 음들만 잡으면 지금 퀘스트 통과가 확 쉬워져요.</p>`;
+}
+function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}"></i>`;return h}
+
+/* ===== audio ===== */
+let ac=null,stream=null,an=null,buf=null;
+async function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")await ac.resume();return ac}
+async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=2048;s.connect(an);buf=new Float32Array(an.fftSize)}}
+function yin(b,sr){const W=b.length>>1,tmin=Math.floor(sr/900),tmax=Math.min(W-1,Math.ceil(sr/65));let e=0;for(let i=0;i<W;i++)e+=b[i]*b[i];if(Math.sqrt(e/W)<0.008)return null;const d=new Float32Array(tmax+1),dn=new Float32Array(tmax+1);for(let t=tmin;t<=tmax;t++){let s=0;for(let i=0;i<W;i++){const a=b[i]-b[i+t];s+=a*a}d[t]=s}let run=0,best=-1;for(let t=tmin;t<=tmax;t++){run+=d[t];dn[t]=run?d[t]*(t-tmin+1)/run:1}for(let t=tmin+1;t<tmax;t++){if(dn[t]<0.15){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0)return null;const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
+function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>65&&f<1000?69+12*Math.log2(f/440):null}
+function tone(m,d){const o=ac.createOscillator(),g=ac.createGain();o.type="triangle";o.frequency.value=hz(m);const t=ac.currentTime;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.25,t+.03);g.gain.setValueAtTime(.25,t+d-.06);g.gain.linearRampToValueAtTime(0,t+d);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
+function ding(){const t=ac.currentTime;[1047,1319].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.18,t+i*.12+.01);g.gain.exponentialRampToValueAtTime(.001,t+i*.12+.4);o.connect(g).connect(ac.destination);o.start(t+i*.12);o.stop(t+i*.12+.45)})}
+
+/* ===== songs ===== */
+const SONGS=[
+ {t:"서른 즈음에",a:"김광석",id:"aG7lxDbJkGM",need:0},
+ {t:"이등병의 편지",a:"김광석",id:"KsVtgmTaF_w",need:0},
+ {t:"거리에서",a:"김광석",id:"R0DA_t_mWk8",need:3},
+ {t:"두 사람",a:"성시경",id:"D6qox5OGiyw",need:5},
+ {t:"모든 날, 모든 순간",a:"폴킴",id:"cp1-o4_H4qM",need:8},
+ {t:"기억의 습작",a:"전람회",id:"TKa1sUBEce4",need:12},
+ {t:"취중진담",a:"전람회",id:"Z21U2xkaZ4Y",need:16},
+ {t:"감사",a:"김동률",id:"HqMpHGkPoQQ",need:20}
+];
+
+/* ===== home ===== */
+function renderHome(){
+  const s=sessions(),days=[...new Set(s.map(x=>dayKey(x.at)))],L=level();
+  const qs=qstate(),q=curQuest(),done=allClear();
+  $("lvTag").textContent=done?"일일 퀘스트":CHAPTERS[q.ch];
+  $("qId").textContent=done?"클리어":"퀘스트 "+q.id;$("questBox").className="quest"+(q.boss&&!done?" boss":"");
+  $("qName").textContent=q.name;$("qDesc").textContent=q.desc;
+  $("qConds").innerHTML=condRows(q,null);$("qPips").innerHTML=pips(q.need,qs.streak);
+  $("qTries").textContent=qs.tries?`도전 ${qs.tries}회`:"";
+  if(done){const ds=dailyStat();
+    $("qId").textContent="일퀘";$("qName").textContent=ds.today?`오늘 완료 · ${ds.today.rank}랭크 (${ds.today.rate}%)`:"오늘의 5분, 아직이에요";
+    $("qDesc").textContent="퀘스트를 다 깼어요. 이제 매일 5분으로 실력을 유지해요. 깬 단계를 섞고, 약점 음 2개가 자동으로 들어가요.";
+    $("qConds").innerHTML=(ds.wkAvg!=null?`<li><span>최근 7일 평균</span><b>${rankOf(ds.wkAvg)} (${ds.wkAvg}%)</b></li>`:"")+(ds.rust?`<li class="ng"><span>실력이 녹슬고 있어요</span><b>최근 3번 평균 B 미만</b></li>`:"");
+    $("qPips").innerHTML=ds.days7.map(x=>`<i class="${x?"on":""}"></i>`).join("");$("qTries").textContent="최근 7일";
+    $("questBox").querySelector(".row:last-child .muted").textContent="이번 주";}
+  else $("questBox").querySelector(".row:last-child .muted").textContent="연속 통과";
+  const bestR=LS.get("best",{});let mh="";[1,2,3].forEach(ch=>{const list=QUESTS.map((x,i)=>({x,i})).filter(o=>o.x.ch===ch);
+    mh+=`<div class="chap"><h3>${CHAPTERS[ch]}</h3><div class="nodes">`+(list.length?list.map(o=>`<span class="node ${o.i<qs.i?"done":o.i===qs.i?"now":"lock"}">${o.i<qs.i?"✓ ":o.i>qs.i?"🔒 ":""}${o.x.id} ${o.x.name}${bestR[o.x.id]?`<em>${bestR[o.x.id]}</em>`:""}</span>`).join(""):`<span class="node lock">🔒 준비 중</span>`)+`</div></div>`});
+  mh+=`<div class="chap"><h3>매일</h3><div class="nodes"><span class="node ${done?"now":"lock"}">${done?"":"🔒 "}일일 퀘스트${done?"":" · 전 퀘스트 클리어 후"}</span></div></div>`;
+  $("qmap").innerHTML=mh;
+  // streak grid
+  const today=new Date();let html="";for(let i=13;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);const k=dayKey(d);html+=`<i class="${days.includes(k)?"on":""} ${i===0?"today":""}" title="${d.getMonth()+1}/${d.getDate()}"></i>`}$("streak").innerHTML=html;
+  let streak=0;for(let i=0;;i++){const d=new Date(today);d.setDate(d.getDate()-i);if(days.includes(dayKey(d)))streak++;else if(i===0)continue;else break}
+  $("streakText").textContent=s.length?`연속 ${streak}일 · 총 ${days.length}일 연습`:"";
+  // headline
+  if(s.length>=2){const f=s[0],l=s[s.length-1];
+    if(f.match&&l.match&&l.match.avgTook<f.match.avgTook)$("headline").innerHTML=`음 찾는 데 첫날 <b>${f.match.avgTook.toFixed(1)}초</b> → 최근 <em>${l.match.avgTook.toFixed(1)}초</em>`;
+    else if(f.match&&l.match&&l.match.avgFirst<f.match.avgFirst)$("headline").innerHTML=`첫 소리 오차 첫날 <b>${Math.round(f.match.avgFirst)}센트</b> → 최근 <em>${Math.round(l.match.avgFirst)}센트</em>`;
+    else $("headline").textContent=days.length>1?`벌써 ${days.length}일째예요. 오늘도 5분만 해요.`:`오늘 ${s.length}번 연습했어요. 내일 다시 오면 비교가 시작돼요.`;
+  }else if(s.length===1)$("headline").textContent="첫날 기록 완료! 내일부터 비교가 시작돼요.";
+  $("go").textContent=done?(dailyStat().today?"일일 퀘스트 한 번 더":"일일 퀘스트 시작"):qs.streak?`이어서 도전 (${qs.streak}/${q.need})`:qs.tries?"퀘스트 다시 도전":"퀘스트 도전";
+  renderDrill();
+  // progress
+  if(s.length){$("progressCard").hidden=false;const l=s[s.length-1],f=s[0];
+    $("sTime").textContent=l.match?l.match.avgTook.toFixed(1)+"초":"–";
+    $("sFirst").textContent=l.match?Math.round(l.match.avgFirst)+"센트":"–";
+    $("sDays").textContent=days.length+"일";}
+  // songs
+  $("songs").innerHTML=SONGS.map((x,i)=>{const open=s.length>=x.need;return `<button type="button" class="song ${open?"":"locked"}" data-i="${i}" ${open?"":"disabled"}><span><b>${x.t}</b> <small>· ${x.a}</small></span><small>${open?"▶":"연습 "+x.need+"회 후 열림"}</small></button>`}).join("");
+  document.querySelectorAll(".song[data-i]").forEach(b=>b.onclick=()=>openSong(SONGS[+b.dataset.i]));
+}
+let curAudio=null;
+async function playClip(k){const b=await getClip(k);if(!b){$("cmpNote").textContent="아직 녹음이 없어요. 연습 마지막 단계에서 녹음돼요.";return}if(curAudio){curAudio.pause()}curAudio=new Audio(URL.createObjectURL(b));curAudio.play()}
+$("playFirst").onclick=()=>playClip("first");$("playLast").onclick=()=>playClip("last");
+
+/* ===== session engine ===== */
+const POOL=["D3","E3","F3","G3","A3","B3","C4"];
+let plan=[],pi=0,running=false,target=null,holdT=0,startT=0,firstErr=null,voicedAt=null,listenUntil=0,lastF=0,trail=[],res={match:[],hold:[]},holdIn=0,holdAll=0,lastNote=null,holdC=[],SQ=null,busy=false;
+const GIVEUP=20000;let gu=0;
+function buildPlan(){SQ=curQuest();const p=[];for(let i=0;i<SQ.match;i++)p.push({k:"match"});for(let i=0;i<SQ.hold;i++)p.push({k:"hold"});return p}
+function need(){const it=plan[Math.min(pi,plan.length-1)];return it&&it.k==="hold"?SQ.holdMs:1000}
+function nextNote(){const pool=SQ?SQ.pool:POOL;if(pool.length===1){lastNote=pool[0];return M(pool[0])}let n;do{n=pool[Math.floor(Math.random()*pool.length)]}while(n===lastNote);lastNote=n;return M(n)}
+function sd(a){if(a.length<5)return null;const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((x,y)=>x+(y-m)*(y-m),0)/a.length)}
+function startItem(){
+  busy=false;const it=plan[pi];target=it.note?M(it.note):nextNote();lastNote=it.note||lastNote;holdT=0;firstErr=null;voicedAt=null;startT=performance.now();holdIn=0;holdAll=0;holdC=[];
+  const mi=plan.filter(x=>x.k==="match").length;
+  $("stepLabel").textContent=(SQ&&SQ.daily?"일일 · ":"")+(it.weak?"약점 음":it.k==="match"?"1/3 음 맞추기":"2/3 끝까지 버티기");
+  $("instr").textContent=it.k==="match"?"들은 음을 '아~'로 따라 내요. 초록 띠 안에서 1초":`들은 음을 '아~'로 ${SQ.holdMs/1000}초 동안 띠 안에서 버텨요`;
+  const group=plan.filter(x=>x.k===it.k),idx=plan.slice(0,pi+1).filter(x=>x.k===it.k).length;
+  $("dots").innerHTML=group.map((_,i)=>`<i class="${i<idx-1?"done":""}"></i>`).join("");
+  $("target").textContent=nameOf(target);tone(target,1.2);listenUntil=performance.now()+1450;
+}
+function loop(){
+  if(!running)return;const now=performance.now(),dt=now-lastF;lastF=now;const tol=SQ.tol;
+  let m=now<listenUntil?null:micMidi();
+  if(m!=null){while(m-target>6)m-=12;while(target-m>6)m+=12;const c=(m-target)*100,inb=Math.abs(c)<=tol;
+    if(voicedAt==null)voicedAt=now;if(firstErr==null&&now-voicedAt>80)firstErr=c;
+    $("say").textContent=inb?"좋아요, 그대로!":c<0?"조금 더 높게 ↑":"조금 더 낮게 ↓";$("say").className="say "+(inb?"ok":"off");
+    holdT=inb?holdT+dt:Math.max(0,holdT-dt*1.5);if(holdT>300){holdAll+=dt;if(inb)holdIn+=dt;holdC.push(c)}
+  }else{$("say").textContent=now<listenUntil?"듣는 중…":"'아~'";$("say").className="say";holdT=Math.max(0,holdT-dt*2);voicedAt=null}
+  $("hold").style.width=Math.min(100,holdT/need()*100)+"%";
+  trail.push({t:now,m});trail=trail.filter(p=>now-p.t<5000);draw(now,tol);
+  if(!busy&&holdT>=need()){
+    busy=true;gu=0;ding();const took=Math.max(0,(now-listenUntil-need())/1000);
+    if(plan[pi].k==="match")res.match.push({n:Math.round(target),took,first:firstErr==null?tol:Math.abs(firstErr),f:firstErr});else res.hold.push({n:Math.round(target),took,ratio:holdAll?holdIn/holdAll:1,wob:sd(holdC)});
+    holdT=-1e9;pi++;
+    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():toRecord()}else startItem()},700);
+  }else if(!busy&&now-listenUntil>GIVEUP+(plan[pi].k==="hold"?SQ.holdMs:0)){
+    busy=true;gu++;
+    // stuck too long: count as a miss and move on
+    if(plan[pi].k==="match")res.match.push({n:Math.round(target),took:GIVEUP/1000,first:Math.max(tol,firstErr==null?100:Math.abs(firstErr)),f:firstErr==null?null:firstErr});else res.hold.push({n:Math.round(target),took:GIVEUP/1000,ratio:holdAll?holdIn/holdAll*0.5:0,wob:sd(holdC)??50});
+    $("say").textContent="다음 음으로 넘어가요";holdT=-1e9;pi++;
+    setTimeout(()=>{if(!running)return;if(pi>=plan.length||gu>=3){running=false;SQ.drill?finishDrill():toRecord()}else startItem()},700);
+  }
+  requestAnimationFrame(loop);
+}
+function draw(now,tol){
+  const cv=$("cv"),g=cv.getContext("2d"),W=cv.width,H=cv.height;g.clearRect(0,0,W,H);if(target==null)return;
+  const Y=m=>H/2-(m-target)/5*(H/2),X=t=>W-(now-t)/5000*W;
+  g.fillStyle=css("--band");g.fillRect(0,Y(target+tol/100),W,Y(target-tol/100)-Y(target+tol/100));
+  g.strokeStyle=css("--line");for(let k=-4;k<=4;k++){const y=Y(target+k);g.beginPath();g.moveTo(0,y);g.lineTo(W,y);g.stroke()}
+  g.strokeStyle=css("--warm");g.lineWidth=6;g.lineCap="round";g.beginPath();let on=false;trail.forEach(p=>{if(p.m==null){on=false;return}const x=X(p.t),y=Y(p.m);on?g.lineTo(x,y):g.moveTo(x,y);on=true});g.stroke();g.lineWidth=1;
+}
+$("go").onclick=async()=>{
+
+  try{await mic()}catch(e){alertBox("마이크를 쓸 수 없어요. 브라우저 설정에서 마이크를 허용해 주세요.");return}
+  plan=allClear()?buildDaily():buildPlan();pi=0;gu=0;res={match:[],hold:[]};trail=[];running=true;show("session");lastF=performance.now();startItem();requestAnimationFrame(loop);
+};
+$("drillGo").onclick=async()=>{
+  const a=analyze();if(!a||!a.weak.length)return;
+  try{await mic()}catch(e){return}
+  const base=curQuest();SQ=Object.assign({},base,{drill:true,pool:a.weak.map(r=>NM(r.n)),match:a.weak.length===1?5:6,hold:0});
+  plan=[];for(let i=0;i<SQ.match;i++)plan.push({k:"match"});pi=0;gu=0;res={match:[],hold:[]};trail=[];running=true;show("session");lastF=performance.now();startItem();requestAnimationFrame(loop);
+};
+function finishDrill(){
+  const q=SQ,its=res.match.map(r=>({k:"m",n:r.n,took:r.took,f:r.f,ok:false}));its.forEach(i=>i.ok=itemOk(q,i));
+  const rate=its.length?Math.round(its.filter(i=>i.ok).length/its.length*100):0,rk=rankOf(rate);
+  const dr=LS.get("drills",[]);dr.push({at:Date.now(),rate,items:its});LS.set("drills",dr.slice(-100));
+  $("doneTitle").textContent="특훈 · 약점 음 집중";$("dRank").textContent=rk;$("dRank").className=rk;$("dRate").textContent=rate+"%";$("dBest").textContent="";
+  $("dResult").textContent=rate>=85?"약점이 풀리고 있어요":"아직 약점이 남아 있어요";$("dResult").className="result "+(rate>=85?"pass":"fail");
+  const by={};its.forEach(i=>{(by[i.n]=by[i.n]||[]).push(i)});
+  $("dConds").innerHTML=Object.keys(by).map(n=>{const a=by[n],ok=a.filter(i=>i.ok).length,fe=a.filter(i=>i.f!=null),e=fe.length?Math.round(fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length):"–";return `<li class="${ok===a.length?"ok":"ng"}"><span>${nameOf(+n)}</span><b>성공 ${ok}/${a.length} · 오차 ${e}센트</b></li>`}).join("");
+  $("dPipsRow").hidden=true;$("dTime").textContent=its.length?(its.reduce((x,i)=>x+i.took,0)/its.length).toFixed(1)+"초":"–";
+  const fe=its.filter(i=>i.f!=null);$("dFirst").textContent=fe.length?Math.round(fe.reduce((x,i)=>x+Math.abs(i.f),0)/fe.length)+"센트":"–";$("dHold").textContent="–";
+  $("doneLine").innerHTML="“"+pick(rate>=85?"drillGood":"drillBad")+"”";
+  $("doneExtra").textContent="특훈은 퀘스트 기록에 안 들어가요. 약점이 풀렸으면 바로 퀘스트에 도전하세요.";
+  SQ=null;show("done");
+}
+$("replay").onclick=()=>{if(target!=null){tone(target,1.2);listenUntil=performance.now()+1450}};
+$("quit").onclick=()=>{running=false;show("home");renderHome()};
+function alertBox(t){$("headline").textContent=t}
+
+/* ===== record ===== */
+let rec=null,recTimer=null;
+function curSong(){const s=sessions();return SONGS.filter(x=>s.length>=x.need).slice(-1)[0]||SONGS[0]}
+function toRecord(){
+  const song=LS.get("recSong",null)||SONGS[0];
+  $("recTitle").textContent=`「${song.t}」 첫 소절`;$("recCount").textContent="15";$("recBtn").disabled=false;$("recBtn").textContent="녹음 시작";
+  show("record");
+}
+$("recBtn").onclick=()=>{
+  if(!window.MediaRecorder){finish(null);return}
+  const chunks=[];try{rec=new MediaRecorder(stream)}catch(e){finish(null);return}
+  rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  rec.onstop=()=>finish(new Blob(chunks,{type:rec.mimeType||"audio/webm"}));
+  rec.start();$("recBtn").disabled=true;$("recBtn").textContent="녹음 중…";let left=15;
+  recTimer=setInterval(()=>{left--;$("recCount").textContent=left;if(left<=0){clearInterval(recTimer);rec.stop()}},1000);
+};
+$("recSkip").onclick=()=>{clearInterval(recTimer);if(rec&&rec.state==="recording"){rec.onstop=()=>finish(null);rec.stop()}else finish(null)};
+
+/* ===== finish ===== */
+async function finish(blob){
+  if(blob){if(!(await getClip("first"))){await putClip("first",blob);LS.set("recSong",SONGS[0])}await putClip("last",blob)}
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
+  const s=sessions(),q=SQ||curQuest();const wobs=res.hold.map(r=>r.wob).filter(x=>x!=null);
+  const cur={at:Date.now(),q:q.id,tol:q.tol,match:res.match.length?{n:res.match.length,avgTook:avg(res.match.map(r=>r.took)),avgFirst:avg(res.match.map(r=>r.first))}:null,hold:res.hold.length?{n:res.hold.length,ratio:avg(res.hold.map(r=>r.ratio)),wob:wobs.length?avg(wobs):null}:null};
+  cur.items=res.match.map(r=>({k:"m",n:r.n,took:+r.took.toFixed(2),f:r.f==null?null:Math.round(r.f)})).concat(res.hold.map(r=>({k:"h",n:r.n,took:+r.took.toFixed(2),ratio:+r.ratio.toFixed(3),wob:r.wob==null?null:Math.round(r.wob)})));
+  cur.items.forEach(i=>i.ok=itemOk(q,i));
+  cur.rate=cur.items.length?Math.round(cur.items.filter(i=>i.ok).length/cur.items.length*100):0;cur.rank=rankOf(cur.rate);
+  const best=LS.get("best",{}),prevBest=best[q.id];if(!prevBest||RORD.indexOf(cur.rank)>RORD.indexOf(prevBest)){best[q.id]=cur.rank;LS.set("best",best)}
+  $("dRank").textContent=cur.rank;$("dRank").className=cur.rank;$("dRate").textContent=cur.rate+"%";
+  $("dBest").textContent=prevBest&&RORD.indexOf(cur.rank)>RORD.indexOf(prevBest)?` · 최고 기록 갱신 (${prevBest}→${cur.rank})`:prevBest?` · 이 퀘스트 최고 ${best[q.id]}`:"";
+  if(q.daily){
+    const ds0=dailyStat();s.push(cur);LS.set("sessions",s.slice(-400));
+    $("doneTitle").textContent="일일 퀘스트";$("dBest").textContent="";
+    $("dResult").textContent=cur.rate>=85?"오늘도 실력 유지 ✓":cur.rate>=70?"무난하게 완료":"오늘은 좀 녹슬었어요";$("dResult").className="result "+(cur.rate>=70?"pass":"fail");
+    $("dConds").innerHTML=condRows(q,cur);$("dPipsRow").hidden=true;
+    $("dTime").textContent=cur.match?cur.match.avgTook.toFixed(1)+"초":"–";$("dFirst").textContent=cur.match?Math.round(cur.match.avgFirst)+"센트":"–";$("dHold").textContent=cur.hold?Math.round(cur.hold.ratio*100)+"%":"–";
+    const ds=dailyStat();let q2;
+    if(ds.rust)q2=pick("rust");else if(cur.rank==="S")q2=pick("dailyS");else if(cur.rate>=70)q2=pick("dailyGood");else q2=pick("dailyBad");
+    $("doneLine").innerHTML="“"+q2+"”";
+    $("doneExtra").textContent=(ds0.wkAvg!=null?`최근 7일 평균 ${rankOf(ds0.wkAvg)} (${ds0.wkAvg}%) → 오늘 ${cur.rank} (${cur.rate}%). `:"첫 일일 퀘스트예요. ")+`이번 주 ${ds.days7.filter(Boolean).length}/7일 완료.`+(ds.rust?" 최근 3번 평균이 B 아래예요. 특훈으로 약점부터 푸세요.":"");
+    show("done");return;
+  }
+  cur.pass=judge(q,cur);$("dPipsRow").hidden=false;
+  const qs=qstate();let cleared=false;const hadStreak=qs.streak,triesNow=(qs.tries||0)+1;qs.tries=triesNow;
+  if(qs.i===QUESTS.indexOf(q)){if(cur.pass){qs.streak++;if(qs.streak>=q.need){qs.i++;qs.streak=0;qs.tries=0;cleared=true}}else qs.streak=0}
+  LS.set("quest",qs);
+  $("dConds").innerHTML=condRows(q,cur);
+  $("doneTitle").textContent=`퀘스트 ${q.id} · ${q.name}`;
+  if(cleared){const nx=QUESTS[qs.i];$("dResult").textContent="퀘스트 클리어! 🎉";$("dResult").className="result pass";$("dPips").innerHTML=pips(q.need,q.need);
+    ding();setTimeout(ding,350);
+    $("doneExtra").textContent=nx?(nx.ch!==q.ch?`${CHAPTERS[q.ch]} 클리어! 다음: ${CHAPTERS[nx.ch]} — ${nx.id} 「${nx.name}」`:`다음 퀘스트 열림: ${nx.id} 「${nx.name}」`):"지금 열린 퀘스트를 모두 깼어요. 3장은 준비 중이에요.";}
+  else if(cur.pass){$("dResult").textContent=`통과 ✓ (${qs.streak}/${q.need})`;$("dResult").className="result pass";$("dPips").innerHTML=pips(q.need,qs.streak);$("doneExtra").textContent=`${q.need-qs.streak}번 더 연속 통과하면 다음 퀘스트가 열려요.`}
+  else{$("dResult").textContent="아직 못 지나가요 ✗";$("dResult").className="result fail";$("dPips").innerHTML=pips(q.need,0);$("doneExtra").textContent="연속 기록이 처음부터예요. ✗ 표시된 조건만 넘기면 돼요."}
+  const prev=s[s.length-1],first=s[0];s.push(cur);LS.set("sessions",s.slice(-400));
+  $("dTime").textContent=cur.match?cur.match.avgTook.toFixed(1)+"초":"–";
+  $("dFirst").textContent=cur.match?Math.round(cur.match.avgFirst)+"센트":"–";
+  $("dHold").textContent=cur.hold?Math.round(cur.hold.ratio*100)+"%":"–";
+  let line="";
+  if(prev&&prev.match&&cur.match){const d=prev.match.avgTook-cur.match.avgTook;line=d>0.05?`지난번보다 음을 <em style="font-style:normal;color:var(--good)">${d.toFixed(1)}초 빨리</em> 맞췄어요`:(prev.match.avgFirst-cur.match.avgFirst>3?`첫 소리가 지난번보다 <em style="font-style:normal;color:var(--good)">${Math.round(prev.match.avgFirst-cur.match.avgFirst)}센트 정확</em>해졌어요`:"")}
+  const nx=QUESTS[qs.i];let quote;
+  if(cleared)quote=q.boss&&(!nx||nx.ch!==q.ch)?pick(q.ch===1?"ch1":"ch2"):pick("clear");
+  else if(cur.pass)quote=pick("pass");else quote=failLine(q,cur,triesNow,hadStreak);
+  $("doneLine").innerHTML="“"+quote+"”";
+  if(cleared){const f0=s.find(x=>x.q===q.id);if(f0&&f0!==cur){const a=q.conds.map(([k])=>{const L=CL[k],x0=metric(f0,k),x1=metric(cur,k);return x0==null||x1==null?"":`${L[0]} ${x0.toFixed(L[2])}→${x1.toFixed(L[2])}${L[1]}`}).filter(Boolean).join(" · ");if(a)$("doneExtra").textContent+=` 이 퀘스트 첫 도전 대비: ${a}`}}
+  else if(line)$("doneExtra").innerHTML+=" "+line;
+  const newly=SONGS.filter(x=>x.need===s.length);if(newly.length)$("doneExtra").textContent+=` 새 곡이 열렸어요: 「${newly[0].t}」`;
+  show("done");
+}
+$("home1").onclick=()=>{show("home");renderHome()};
+
+/* ===== sing (YouTube) ===== */
+let ytPlayer=null,ytReady=false,fRun=false,fTrail=[],fSec=0,fLast=0,ytTry=0;
+window.onYouTubeIframeAPIReady=()=>{ytReady=true};
+(function(){const s=document.createElement("script");s.src="https://www.youtube.com/iframe_api";s.async=true;document.head.appendChild(s)})();
+async function openSong(x){
+  show("sing");$("singTitle").textContent=`${x.t} · ${x.a}`;
+  const load=()=>{if(!ytReady||!window.YT){if(++ytTry>20){$("ytNote").textContent="영상을 불러오지 못했어요. 인터넷 연결을 확인해 주세요.";return}setTimeout(load,500);return}ytTry=0;
+    if(ytPlayer&&ytPlayer.loadVideoById)ytPlayer.loadVideoById(x.id);else ytPlayer=new YT.Player("ytPlayer",{videoId:x.id,playerVars:{playsinline:1,rel:0},events:{onError:()=>{$("ytNote").textContent="이 영상은 여기서 재생이 막혀 있어요."}}})};
+  load();
+  try{await mic()}catch(e){$("ytNote").textContent="마이크를 허용하면 내 음정이 나와요.";return}
+  if(!fRun){fRun=true;fTrail=[];fSec=0;fLast=performance.now();requestAnimationFrame(fLoop)}
+}
+function fLoop(){
+  if(!fRun)return;const now=performance.now(),dt=(now-fLast)/1000;fLast=now;const m=micMidi();if(m!=null)fSec+=dt;
+  fTrail.push({t:now,m});fTrail=fTrail.filter(p=>now-p.t<10000);
+  $("fCur").textContent=m!=null?nameOf(m):"–";$("fSec").textContent=Math.round(fSec)+"초";
+  const rc=fTrail.filter(p=>p.m!=null&&now-p.t<600).map(p=>p.m);if(rc.length>8){const a=rc.reduce((x,y)=>x+y,0)/rc.length;$("fWob").textContent=Math.round(Math.sqrt(rc.reduce((x,y)=>x+(y-a)*(y-a),0)/rc.length)*100)+"센트"}
+  const cv=$("fCv"),g=cv.getContext("2d"),W=cv.width,H=cv.height;g.clearRect(0,0,W,H);
+  const v=fTrail.filter(p=>p.m!=null).map(p=>p.m).sort((a,b)=>a-b),c=v.length?v[v.length>>1]:57,Y=x=>H/2-(x-c)/8*(H/2),X=t=>W-(now-t)/10000*W;
+  g.strokeStyle=css("--line");g.fillStyle=css("--muted");g.font="20px system-ui";for(let k=-7;k<=7;k++){const n=Math.round(c)+k,y=Y(n);g.beginPath();g.moveTo(56,y);g.lineTo(W,y);g.stroke();if(k%2===0)g.fillText(nameOf(n),4,y+7)}
+  g.strokeStyle=css("--warm");g.lineWidth=5;g.beginPath();let on=false;fTrail.forEach(p=>{if(p.m==null){on=false;return}const x=X(p.t),y=Y(p.m);on?g.lineTo(x,y):g.moveTo(x,y);on=true});g.stroke();g.lineWidth=1;
+  requestAnimationFrame(fLoop);
+}
+$("home2").onclick=()=>{fRun=false;try{ytPlayer&&ytPlayer.pauseVideo&&ytPlayer.pauseVideo()}catch(e){}show("home");renderHome()};
+
+/* ===== boot ===== */
+renderHome();
+if("serviceWorker" in navigator&&location.protocol!=="file:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
