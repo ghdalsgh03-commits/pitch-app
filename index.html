@@ -126,7 +126,7 @@ section{display:grid;gap:16px}
       <button type="button" id="playFirst">▶ 첫날 녹음</button>
       <button type="button" id="playLast">▶ 최근 녹음</button>
     </div>
-    <p class="muted" id="cmpNote">같은 소절을 첫날과 최근에 녹음한 거예요. 번갈아 들어 보세요.</p>
+    <p class="muted" id="cmpNote">첫날 녹음과 최근 녹음이에요. 번갈아 들어 보세요.</p>
   </div>
 
   <div class="card">
@@ -161,8 +161,8 @@ section{display:grid;gap:16px}
 <section id="record" hidden>
   <div class="card stage">
     <span class="step-label">3/3 오늘의 소절 녹음</span>
-    <p class="big-msg" id="recTitle">「서른 즈음에」 첫 소절</p>
-    <p class="muted" id="recHint">반주 없이 편하게 15초 불러요. 매일 같은 소절을 녹음해서 첫날과 비교해요.</p>
+    <p class="big-msg" id="recTitle">자신 있는 노래 15초</p>
+    <p class="muted" id="recHint">아무 노래나 편하게 15초 불러요. 같은 노래로 녹음하면 첫날과 비교가 더 정확해요.</p>
     <div class="target" id="recCount">15</div>
     <button type="button" class="primary" id="recBtn">녹음 시작</button>
     <button type="button" id="recSkip">건너뛰기</button>
@@ -235,13 +235,13 @@ const P1=["E3","F3","G3","A3","B3","C4","D4"], P2=["C3","D3","E3","F3","G3","A3"
 const vShift=()=>LS.get("voice","m")==="f"?12:0;
 const CHAPTERS={1:"1장 · 음정 잡기",2:"2장 · 흔들림 없이",3:"3장 · 음역 넓히기"};
 const QUESTS=[
- {id:"1-1",ch:1,name:"들은 음 따라 내기",desc:"띠 ±50센트. 들은 음을 바로 따라 내는 감을 잡아요.",tol:50,pool:P1,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",2.0],["first","<=",35]]},
- {id:"1-2",ch:1,name:"좁아진 띠",desc:"띠가 ±30센트로 좁아져요. 대충 비슷한 음은 이제 안 통해요.",tol:30,pool:P1,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",1.5],["first","<=",25]]},
- {id:"1-3",ch:1,name:"넓어진 음",desc:"낮은 음과 높은 음이 섞여 나와요. 음 사이 거리감을 익혀요.",tol:30,pool:P2,match:8,hold:4,holdMs:4000,need:2,conds:[["took","<=",1.5],["first","<=",25]]},
- {id:"1-4",ch:1,boss:true,name:"보스 · 첫 소리 명중",desc:"띠 ±15센트. 첫 소리부터 맞혀야 해요. 3번 연속 통과해야 1장 클리어.",tol:15,pool:P1,match:8,hold:4,holdMs:4000,need:3,conds:[["took","<=",1.5],["first","<=",15]]},
- {id:"2-1",ch:2,name:"6초 버티기",desc:"한 음을 6초 동안 띠 안에서 유지해요. 숨을 아껴 써요.",tol:30,pool:P1,match:4,hold:5,holdMs:6000,need:2,conds:[["ratio",">=",85],["wob","<=",20]]},
- {id:"2-2",ch:2,name:"10초 버티기",desc:"띠 ±25센트, 10초. 끝에서 음이 처지지 않게 해요.",tol:25,pool:P1,match:4,hold:4,holdMs:10000,need:2,conds:[["ratio",">=",85],["wob","<=",15]]},
- {id:"2-3",ch:2,boss:true,name:"보스 · 15초 롱톤",desc:"띠 ±20센트, 15초, 넓은 음역. 3번 연속 통과해야 2장 클리어.",tol:20,pool:P2,match:3,hold:3,holdMs:15000,need:3,conds:[["ratio",">=",85],["wob","<=",12]]}
+ {id:"1-1",ch:1,name:"들은 음 따라 내기",desc:"띠 ±60센트. 들은 음을 따라 내는 감부터 잡아요.",tol:60,pool:P1,match:8,hold:4,holdMs:3000,need:2,conds:[["took","<=",3.0],["first","<=",50]]},
+ {id:"1-2",ch:1,name:"좁아진 띠",desc:"띠가 ±40센트로 좁아져요. 대충 비슷한 음은 이제 안 통해요.",tol:40,pool:P1,match:8,hold:4,holdMs:3000,need:2,conds:[["took","<=",2.5],["first","<=",40]]},
+ {id:"1-3",ch:1,name:"넓어진 음",desc:"낮은 음과 높은 음이 섞여 나와요. 음 사이 거리감을 익혀요.",tol:40,pool:P2,match:8,hold:4,holdMs:3000,need:2,conds:[["took","<=",2.5],["first","<=",40]]},
+ {id:"1-4",ch:1,boss:true,name:"보스 · 첫 소리 명중",desc:"띠 ±25센트. 첫 소리부터 맞혀야 해요. 3번 연속 통과해야 1장 클리어.",tol:25,pool:P1,match:8,hold:4,holdMs:4000,need:3,conds:[["took","<=",2.0],["first","<=",28]]},
+ {id:"2-1",ch:2,name:"5초 버티기",desc:"한 음을 5초 동안 띠 안에서 유지해요. 숨을 아껴 써요.",tol:35,pool:P1,match:4,hold:5,holdMs:5000,need:2,conds:[["ratio",">=",75],["wob","<=",25]]},
+ {id:"2-2",ch:2,name:"8초 버티기",desc:"띠 ±30센트, 8초. 끝에서 음이 처지지 않게 해요.",tol:30,pool:P1,match:4,hold:4,holdMs:8000,need:2,conds:[["ratio",">=",80],["wob","<=",20]]},
+ {id:"2-3",ch:2,boss:true,name:"보스 · 12초 롱톤",desc:"띠 ±25센트, 12초, 넓은 음역. 3번 연속 통과해야 2장 클리어.",tol:25,pool:P2,match:3,hold:3,holdMs:12000,need:3,conds:[["ratio",">=",80],["wob","<=",18]]}
 ];
 const CL={took:["음 찾는 시간","초",1],first:["첫 소리 오차","센트",0],ratio:["띠 안에서 버틴 비율","%",0],wob:["음 흔들림","센트",0]};
 function qstate(){return LS.get("quest",{i:0,streak:0,tries:0})}
@@ -284,7 +284,7 @@ function failLine(q,cur,tries,hadStreak){
   return pick(worst||"first");
 }
 /* ===== daily quest (unlocks after all quests) ===== */
-const DAILY={id:"daily",daily:true,name:"일일 퀘스트",tol:20,pool:P2,match:6,hold:2,holdMs:8000,need:1,conds:[["took","<=",1.5],["first","<=",20],["ratio",">=",85],["wob","<=",15]]};
+const DAILY={id:"daily",daily:true,name:"일일 퀘스트",tol:25,pool:P2,match:6,hold:2,holdMs:8000,need:1,conds:[["took","<=",2.0],["first","<=",28],["ratio",">=",80],["wob","<=",18]]};
 const dailies=()=>sessions().filter(x=>x.q==="daily");
 function dailyStat(){const d=dailies(),today=dayKey(Date.now()),td=d.filter(x=>dayKey(x.at)===today),wk=d.filter(x=>Date.now()-x.at<7*864e5),wkAvg=wk.length?Math.round(wk.reduce((a,x)=>a+x.rate,0)/wk.length):null;
   const days7=[];for(let i=6;i>=0;i--){const t=new Date();t.setDate(t.getDate()-i);days7.push(d.some(x=>dayKey(x.at)===dayKey(t)))}
@@ -418,7 +418,7 @@ function loop(){
   if(!running)return;const now=performance.now(),dt=now-lastF;lastF=now;const tol=SQ.tol;
   let m=now<listenUntil?null:micMidi();
   if(m!=null){while(m-target>6)m-=12;while(target-m>6)m+=12;const c=(m-target)*100,inb=Math.abs(c)<=tol;
-    if(voicedAt==null)voicedAt=now;if(firstErr==null&&now-voicedAt>80)firstErr=c;
+    if(voicedAt==null)voicedAt=now;if(firstErr==null&&now-voicedAt>250)firstErr=c;
     $("say").textContent=inb?"좋아요, 그대로!":c<0?"조금 더 높게 ↑":"조금 더 낮게 ↓";$("say").className="say "+(inb?"ok":"off");
     holdT=inb?holdT+dt:Math.max(0,holdT-dt*1.5);if(holdT>300){holdAll+=dt;if(inb)holdIn+=dt;holdC.push(c)}
   }else{$("say").textContent=now<listenUntil?"듣는 중…":"'아~'";$("say").className="say";holdT=Math.max(0,holdT-dt*2);voicedAt=null}
@@ -492,7 +492,7 @@ let rec=null,recTimer=null;
 function curSong(){const s=sessions();return SONGS.filter(x=>s.length>=x.need).slice(-1)[0]||SONGS[0]}
 function toRecord(){
   const song=LS.get("recSong",null)||SONGS[0];
-  $("recTitle").textContent=`「${song.t}」 첫 소절`;$("recCount").textContent="15";$("recBtn").disabled=false;$("recBtn").textContent="녹음 시작";
+  $("recTitle").textContent="자신 있는 노래 15초";$("recCount").textContent="15";$("recBtn").disabled=false;$("recBtn").textContent="녹음 시작";
   show("record");
 }
 $("recBtn").onclick=()=>{
