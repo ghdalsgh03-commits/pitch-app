@@ -50,6 +50,7 @@ canvas{width:100%;height:200px;background:var(--bg);border-radius:12px;display:b
 .dots{display:flex;justify-content:center;gap:6px}
 .dots i{width:10px;height:10px;border-radius:50%;background:var(--line)}
 .dots i.done{background:var(--good)}
+.calrow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:12px;border:1px solid var(--line);border-radius:12px}.calrow b{display:block}.calrow .muted{font-size:.8rem}.cal-time{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.cal-time i{display:block;height:100%;width:0;background:var(--accent)}.chk{list-style:none;margin:0;padding:0;display:grid;gap:8px;text-align:left}.chk li{padding:10px 12px;border-radius:10px;background:var(--good-soft);color:var(--good);font-weight:600;font-size:.9rem}.chk li.warn{background:var(--warm-soft);color:var(--warm)}.chk li small{display:block;font-weight:500;color:var(--ink);opacity:.8;margin-top:2px}
 .big-msg{font-size:1.6rem;font-weight:800;text-align:center;line-height:1.3}
 .yt{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
 .yt iframe,.yt>div{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -106,7 +107,7 @@ section{display:grid;gap:16px}
     <p class="muted" id="streakText"></p>
     <button type="button" class="primary" id="go">퀘스트 도전</button>
     <p class="muted">이어폰을 끼면 더 정확해요. 처음 한 번 마이크 허용을 눌러 주세요.</p>
-    <div class="row"><span class="muted">목소리</span><button type="button" class="vbtn" data-v="m" style="min-height:36px;padding:4px 14px">남성</button><button type="button" class="vbtn" data-v="f" style="min-height:36px;padding:4px 14px">여성</button><span class="muted" style="font-size:.78rem">여성은 한 옥타브 위 음으로 연습해요</span></div>
+    <div class="calrow" id="calRow"><div><b>목소리·마이크 체크</b><span class="muted" id="calSum">처음 한 번, 30초면 돼요. 내 음역과 마이크에 맞춰 음을 잡아요.</span></div><button type="button" id="calBtn" style="min-height:40px;padding:4px 14px;white-space:nowrap">체크하기</button></div>
     <div class="row"><span class="muted">연습 후 녹음</span><button type="button" class="rbtn" data-r="1" style="min-height:36px;padding:4px 14px">켜기</button><button type="button" class="rbtn" data-r="0" style="min-height:36px;padding:4px 14px">끄기</button></div>
   </div>
 
@@ -175,6 +176,22 @@ section{display:grid;gap:16px}
   </div>
 </section>
 
+<!-- CALIBRATION -->
+<section id="calib" hidden>
+  <div class="card stage">
+    <div class="row" style="justify-content:space-between"><span class="step-label" id="cStep">목소리·마이크 체크</span><button type="button" class="ghost" id="cQuit" style="min-height:36px;padding:4px 10px">닫기</button></div>
+    <p class="big-msg" id="cTitle">목소리·마이크 체크</p>
+    <p class="muted" id="cHint">조용한 곳에서, 평소 연습할 때와 같은 마이크로 해 주세요. 4단계, 20초 정도 걸려요.</p>
+    <div class="target" id="cNote">–</div>
+    <div class="say" id="cSay"> </div>
+    <div class="meter" aria-label="소리 크기"><i id="cLvl"></i></div>
+    <div class="cal-time"><i id="cTime"></i></div>
+    <div id="cResult" hidden style="text-align:left;display:grid;gap:10px"></div>
+    <button type="button" class="primary" id="cGo">체크 시작</button>
+    <button type="button" id="cAgain" hidden>다시 체크</button>
+  </div>
+</section>
+
 <!-- DONE -->
 <section id="done" hidden>
   <div class="card stage">
@@ -225,7 +242,7 @@ const hz=m=>440*Math.pow(2,(m-69)/12);
 const $=id=>document.getElementById(id);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const dayKey=d=>{d=new Date(d);return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()};
-function show(id){["home","session","record","done","sing"].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)}
+function show(id){["home","session","record","done","sing","calib"].forEach(s=>$(s).hidden=s!==id);window.scrollTo(0,0)}
 
 /* ===== storage ===== */
 const LS={get(k,d){try{const v=localStorage.getItem("pp:"+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem("pp:"+k,JSON.stringify(v))}catch(e){}}};
@@ -239,7 +256,7 @@ const sessions=()=>LS.get("sessions",[]);
 
 /* ===== quests ===== */
 const P1=["E3","F3","G3","A3","B3","C4","D4"], P2=["C3","D3","E3","F3","G3","A3","B3","C4","D4","E4"];
-const vShift=()=>LS.get("voice","m")==="f"?12:0;
+const vShift=()=>{const c=LS.get("calib",null);return c&&c.shift!=null?c.shift:(LS.get("voice","m")==="f"?12:0)};
 const CHAPTERS={1:"1장 · 음정 잡기",2:"2장 · 흔들림 없이",3:"3장 · 음역 넓히기"};
 const QUESTS=[
  {id:"1-1",ch:1,name:"들은 음 따라 내기",desc:"띠 ±60센트. 들은 음을 따라 내는 감부터 잡아요.",tol:60,pool:P1,match:8,hold:4,holdMs:3000,need:2,conds:[["took","<=",3.0],["first","<=",50]]},
@@ -336,8 +353,27 @@ function pips(n,on){let h="";for(let i=0;i<n;i++)h+=`<i class="${i<on?"on":""}">
 let ac=null,stream=null,an=null,buf=null;
 async function audio(){if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")await ac.resume();return ac}
 async function mic(){await audio();if(!stream){stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const s=ac.createMediaStreamSource(stream);an=ac.createAnalyser();an.fftSize=4096;s.connect(an);buf=new Float32Array(an.fftSize)};try{await ac.resume()}catch(e){}}
-function yin(b,sr){let k=sr>30000?2:1,n=Math.floor(b.length/k),x=b;if(k>1){x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=(b[2*i]+b[2*i+1])*.5;sr/=2}const W=n>>1,tmin=Math.max(2,Math.floor(sr/1000)),tmax=Math.min(W-1,Math.ceil(sr/48));let e=0;for(let i=0;i<W;i++)e+=x[i]*x[i];if(Math.sqrt(e/W)<0.006)return null;const d=new Float32Array(tmax+2);for(let t=1;t<=tmax+1;t++){let s=0;for(let i=0;i<W;i++){const a=x[i]-x[i+t];s+=a*a}d[t]=s}const dn=new Float32Array(tmax+2);dn[0]=1;let run=0;for(let t=1;t<=tmax+1;t++){run+=d[t];dn[t]=run?d[t]*t/run:1}let best=-1;for(let t=tmin;t<tmax;t++){if(dn[t]<0.12){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}if(best<0){let mv=1;for(let t=tmin;t<tmax;t++)if(dn[t]<mv&&dn[t]<=dn[t-1]&&dn[t]<=dn[t+1]){mv=dn[t];best=t}if(mv>0.3)return null}const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
-function micMidi(){an.getFloatTimeDomainData(buf);const f=yin(buf,ac.sampleRate);return f&&f>48&&f<1000?69+12*Math.log2(f/440):null}
+function yin(b,sr,o){o=o||{};const fmin=o.fmin||48,fmax=o.fmax||1000,gate=o.gate||0.006;let k=sr>30000?2:1,n=Math.floor(b.length/k),x=b;if(k>1){x=new Float32Array(n);for(let i=0;i<n;i++)x[i]=(b[2*i]+b[2*i+1])*.5;sr/=2}
+const W=n>>1,tmin=Math.max(2,Math.floor(sr/fmax)),tmax=Math.min(W-1,Math.ceil(sr/fmin));if(tmax<=tmin+2)return null;let e=0;for(let i=0;i<W;i++)e+=x[i]*x[i];if(Math.sqrt(e/W)<gate)return null;
+const top=Math.min(W-1,Math.ceil(sr/Math.max(30,fmin*0.5))),d=new Float32Array(top+2);for(let t=1;t<=top+1;t++){let s=0;for(let i=0;i<W;i++){const a=x[i]-x[i+t];s+=a*a}d[t]=s}
+const dn=new Float32Array(top+2);dn[0]=1;let run=0;for(let t=1;t<=top+1;t++){run+=d[t];dn[t]=run?d[t]*t/run:1}
+let best=-1;for(let t=tmin;t<tmax;t++){if(dn[t]<0.15){while(t+1<tmax&&dn[t+1]<dn[t])t++;best=t;break}}
+if(best<0){let mv=1;for(let t=tmin+1;t<tmax;t++)if(dn[t]<mv&&dn[t]<=dn[t-1]&&dn[t]<=dn[t+1]){mv=dn[t];best=t}if(best<0||mv>0.3)return null}
+const midiAt=t=>69+12*Math.log2(sr/t/440),near=(c,lo,hi)=>{let b=-1,v=1;for(let t=Math.max(2,Math.floor(c*0.95));t<=Math.min(top,Math.ceil(c*1.05));t++)if(dn[t]<v){v=dn[t];b=t}return [b,v]};
+/* octave guard: a weak fundamental (low voice, small/far mic) makes the 2nd harmonic win. If the frame really has a
+   pitch one octave lower, its odd harmonics (1.5x and 0.5x of the reading) show up as clear spectral peaks. */
+const G=q=>{const w=2*Math.cos(2*Math.PI*q/sr);let s1=0,s2=0;for(let i=0;i<n;i++){const s0=x[i]+w*s1-s2;s2=s1;s1=s0}return s1*s1+s2*s2-w*s1*s2};
+const peak=q=>{const e=G(q),bg=(G(q*0.88)+G(q*1.12))/2+1e-12;return [e,e/bg]};
+const fNow=sr/best,b2=Math.round(best*2);
+if(b2<=top&&fNow/2>=Math.max(40,fmin*0.8)&&dn[b2]<0.35){const [e1]=peak(fNow),[e3,r3]=peak(fNow*1.5),[,r0]=peak(fNow/2);
+  const out=o.hi!=null&&midiAt(best)>o.hi+2;
+  if(e3>e1*0.02&&(r3>6||(r3>4&&(r0>2.5||out)))){let bb=b2,v=dn[b2];for(let t=b2-2;t<=Math.min(top,b2+2);t++)if(dn[t]<v){v=dn[t];bb=t}best=bb}}
+const a=dn[best-1],c=dn[best+1],m=dn[best],den=a-2*m+c;return sr/(best+(den?0.5*(a-c)/den:0))}
+let CAL=LS.get("calib",null);
+function detOpts(){return CAL?{fmin:Math.max(40,hz(CAL.lo-7)),fmax:Math.min(1200,hz(CAL.hi+9)),gate:CAL.gate,lo:CAL.lo,hi:CAL.hi}:{}}
+function micMidi(o){an.getFloatTimeDomainData(buf);o=o||detOpts();const f=yin(buf,ac.sampleRate,o);return f&&f>(o.fmin||48)*0.98&&f<(o.fmax||1000)*1.02?69+12*Math.log2(f/440):null}
+function micRms(){an.getFloatTimeDomainData(buf);let e=0,pk=0;for(let i=0;i<buf.length;i++){const v=buf[i];e+=v*v;const a=v<0?-v:v;if(a>pk)pk=a}return {rms:Math.sqrt(e/buf.length),pk}}
+function micInfo(){try{const tr=stream.getAudioTracks()[0],st=tr.getSettings?tr.getSettings():{};return {label:tr.label||"",sr:st.sampleRate||ac.sampleRate}}catch(e){return {label:"",sr:ac?ac.sampleRate:0}}}
 let PW=null;
 function tone(m,d){if(ac.state!=="running"){try{ac.resume()}catch(e){}}
   if(!PW){const n=8,re=new Float32Array(n+1),im=new Float32Array(n+1);for(let h=1;h<=n;h++)im[h]=1/Math.pow(h,1.1);PW=ac.createPeriodicWave(re,im)}
@@ -345,6 +381,75 @@ function tone(m,d){if(ac.state!=="running"){try{ac.resume()}catch(e){}}
   const t=ac.currentTime,v=.55;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(v,t+.02);g.gain.setValueAtTime(v,t+d-.08);g.gain.linearRampToValueAtTime(0,t+d);
   o.connect(lp).connect(g).connect(ac.destination);o.start(t);o.stop(t+d+.02)}
 function ding(){const t=ac.currentTime;[1047,1319].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.setValueAtTime(0,t+i*.12);g.gain.linearRampToValueAtTime(.18,t+i*.12+.01);g.gain.exponentialRampToValueAtTime(.001,t+i*.12+.4);o.connect(g).connect(ac.destination);o.start(t+i*.12);o.stop(t+i*.12+.45)})}
+
+/* ===== voice & mic check (calibration) ===== */
+const CSTEPS=[
+ {k:"quiet",sec:2.5,t:"조용히 있어 주세요",h:"주변 소음을 재요. 말하지 말고 2초만 기다려요."},
+ {k:"mid",sec:4,t:"편한 높이로 '아~'",h:"말할 때 정도의 편한 높이로 길게 '아~' 해요."},
+ {k:"low",sec:5,t:"가장 낮은 음까지 내려가기",h:"'아~'를 내면서 스르륵 내려가 가장 낮은 음에서 잠깐 버텨요. 억지로 긁지 말고 소리가 나는 데까지만."},
+ {k:"high",sec:5,t:"가장 높은 음까지 올라가기",h:"'아~'로 스르륵 올라가 편하게 낼 수 있는 가장 높은 음에서 잠깐 버텨요. 가성 말고 진성으로."}];
+let calAfter=null,calRun=false;
+function openCalib(after,notice){calAfter=after;$("cGo").dataset.next="";show("calib");$("cResult").hidden=true;$("cGo").hidden=false;$("cAgain").hidden=true;$("cGo").textContent="체크 시작";
+  $("cLvl").parentNode.hidden=false;$("cTime").parentNode.hidden=false;$("cTitle").textContent="목소리·마이크 체크";$("cStep").textContent="목소리·마이크 체크";$("cNote").textContent="–";$("cSay").textContent=" ";$("cLvl").style.width="0";$("cTime").style.width="0";
+  $("cHint").textContent=(notice?notice+" ":"")+"조용한 곳에서, 평소 연습할 때와 같은 마이크로 해 주세요. 4단계, 20초 정도 걸려요."}
+$("cQuit").onclick=()=>{calRun=false;show("home");renderHome()};
+$("cAgain").onclick=()=>openCalib(calAfter);
+$("cGo").onclick=async()=>{
+  if($("cGo").dataset.next==="1"){$("cGo").dataset.next="";if(calAfter==="start")startQuest();else{show("home");renderHome()}return}
+  $("cGo").hidden=true;
+  try{await Promise.race([mic(),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),10000))])}catch(e){show("home");micHelp(e);return}
+  runCalib();
+};
+const pct=(a,p)=>{if(!a.length)return null;const b=[...a].sort((x,y)=>x-y);return b[Math.min(b.length-1,Math.max(0,Math.floor(p*(b.length-1))))]};
+const stableOf=fr=>{const out=[];let runL=0;for(let i=1;i<fr.length;i++){if(fr[i]!=null&&fr[i-1]!=null&&Math.abs(fr[i]-fr[i-1])<0.8){runL++;if(runL>=2)out.push(fr[i])}else runL=0}return out};
+async function runCalib(){
+  calRun=true;const data={quiet:[],mid:[],low:[],high:[]},lv={mid:[],low:[],high:[]};let clip=0,total=0;
+  for(let si=0;si<CSTEPS.length;si++){const st=CSTEPS[si];if(!calRun)return;
+    $("cStep").textContent=`${si+1}/${CSTEPS.length} · ${st.t}`;$("cTitle").textContent=st.t;$("cHint").textContent=st.h;
+    // 0.8s get-ready gap so the first frames are not the previous step
+    const t0=performance.now()+800,t1=t0+st.sec*1000;
+    await new Promise(res=>{function f(){if(!calRun)return res();const now=performance.now(),{rms,pk}=micRms();
+      $("cLvl").style.width=Math.min(100,rms*600)+"%";$("cLvl").style.background=pk>0.98?"var(--warm)":"var(--good)";
+      if(now<t0){$("cSay").textContent="준비…";$("cTime").style.width="0";return requestAnimationFrame(f)}
+      $("cTime").style.width=Math.min(100,(now-t0)/(t1-t0)*100)+"%";
+      if(st.k==="quiet"){data.quiet.push(rms);$("cSay").textContent="조용히…";$("cNote").textContent="–"}
+      else{const gate=Math.max(0.004,(pct(data.quiet,0.5)||0.004)*2.5);const m=micMidi({fmin:45,fmax:1100,gate});data[st.k].push(m);if(m!=null){lv[st.k].push(rms);total++;if(pk>0.98)clip++}
+        $("cNote").textContent=m!=null?solOf(m):"–";$("cSay").textContent=m!=null?`${octWord(m)} ${solOf(m)} (${nameOf(m)})`:"'아~' 소리를 내 주세요"}
+      if(now>=t1)return res();requestAnimationFrame(f)}requestAnimationFrame(f)});
+  }
+  calRun=false;finishCalib(data,lv,clip,total);
+}
+function finishCalib(data,lv,clip,total){
+  const noise=pct(data.quiet,0.5)||0.003,mi=micInfo();
+  const sm=stableOf(data.mid),sl=stableOf(data.low),sh=stableOf(data.high),all=[...sm,...sl,...sh];
+  const voicedMid=data.mid.filter(x=>x!=null).length/Math.max(1,data.mid.length);
+  const items=[];let warn=0;const W=(ok,t,tip)=>{if(!ok)warn++;items.push(`<li class="${ok?"":"warn"}">${ok?"✓":"!"} ${t}${!ok&&tip?`<small>${tip}</small>`:""}</li>`)};
+  if(all.length<15||voicedMid<0.3){
+    $("cResult").hidden=false;$("cResult").innerHTML=`<ul class="chk"><li class="warn">! 목소리가 거의 안 잡혔어요<small>마이크에 조금 더 가까이(한 뼘 정도) 대고, 소리를 조금 더 크게 내서 다시 해 주세요. 마이크 허용이 꺼져 있으면 소리가 안 잡혀요.</small></li></ul>`;
+    $("cTitle").textContent="다시 한 번 해 주세요";$("cHint").textContent="";$("cAgain").hidden=false;return}
+  const center=pct(sm.length?sm:all,0.5);
+  let lo=Math.round(Math.min(pct(sl.length?sl:all,0.1),center-3)),hi=Math.round(Math.max(pct(sh.length?sh:all,0.9),center+3));
+  if(hi-lo<7){lo=Math.round(center-6);hi=Math.round(center+6)}
+  // octave jumps while holding one comfortable note = the mic/room is producing harmonic errors
+  const jumps=data.mid.filter(x=>x!=null&&Math.abs(x-center)>=10&&Math.abs(x-center)<=14).length/Math.max(1,data.mid.filter(x=>x!=null).length);
+  const lvMed=pct([...lv.mid,...lv.low,...lv.high],0.5)||0,gate=Math.min(0.03,Math.max(0.003,noise*2.5+0.002));
+  const bt=/bluetooth|airpods|buds|hands-?free|headset|핸즈프리|블루투스/i.test(mi.label)||(mi.sr&&mi.sr<=16000);
+  const mid=(lo+hi)/2;let shift=Math.round(mid-57);const p2lo=M("C3"),p2hi=M("E4");
+  if(hi-lo>=p2hi-p2lo+2){shift=Math.max(shift,lo+1-p2lo);shift=Math.min(shift,hi-1-p2hi)}
+  shift=Math.max(-12,Math.min(19,shift));
+  W(noise<0.012,noise<0.012?"주변이 조용해요":"주변 소음이 커요","조용한 곳으로 옮기거나 선풍기·TV를 꺼 주세요. 소음이 크면 낮은 음이 잘 안 잡혀요.");
+  W(lvMed>=0.012,lvMed>=0.012?"목소리 크기가 적당해요":"목소리가 작게 들어와요","마이크를 입에서 한 뼘 거리로 가까이 대 주세요.");
+  W(clip/Math.max(1,total)<0.05,clip/Math.max(1,total)<0.05?"소리가 깨지지 않아요":"마이크가 너무 가까워서 소리가 깨져요","소리가 깨지면 음이 높게 잡혀요. 입에서 한 뼘 이상 떨어뜨려 주세요.");
+  W(jumps<0.12,jumps<0.12?"음이 한 옥타브씩 튀지 않아요":`음이 한 옥타브씩 튀었어요 (${Math.round(jumps*100)}%)`,"마이크가 배음을 크게 잡는 상태예요. 내 음역 밖으로 튀는 값은 이제 자동으로 바로잡아요. 계속 튀면 휴대폰 자체 마이크로 바꿔 보세요.");
+  W(!bt,bt?"블루투스 마이크예요":"마이크 연결 방식 문제없음",bt?"블루투스 마이크는 통화 음질로 연결돼 낮은 음이 부정확해요. 휴대폰 마이크나 유선 이어폰을 권해요.":"");
+  CAL={lo,hi,center:Math.round(center),gate,noise,shift,label:mi.label,sr:mi.sr,bt,jump:Math.round(jumps*100),warn,at:Date.now()};LS.set("calib",CAL);
+  if(!LS.get("voice",null))LS.set("voice",mid>=62?"f":"m");
+  $("cStep").textContent="체크 완료";$("cTitle").textContent="내 목소리에 맞췄어요";$("cHint").textContent="";$("cNote").textContent=solOf(center);$("cSay").textContent="편한 음 · "+koName(center)+` (${nameOf(center)})`;
+  $("cLvl").parentNode.hidden=true;$("cTime").parentNode.hidden=true;$("cResult").hidden=false;$("cResult").innerHTML=`<div class="stat"><div><small>가장 낮은 음</small><b>${solOf(lo)}</b><small>${koName(lo)} ${nameOf(lo)}</small></div><div><small>편한 음</small><b>${solOf(center)}</b><small>${nameOf(center)}</small></div><div><small>가장 높은 음</small><b>${solOf(hi)}</b><small>${koName(hi)} ${nameOf(hi)}</small></div></div>
+   <p class="muted" style="margin:0">음을 찾는 범위를 ${nameOf(lo-7)}~${nameOf(hi+9)}로 좁혀서 엉뚱하게 높게·낮게 잡히는 걸 막았어요. 연습 음은 내 음역 가운데로 ${shift>0?"+":""}${shift}반음 옮겼어요.</p>
+   <ul class="chk">${items.join("")}</ul>`;
+  $("cGo").hidden=false;$("cGo").dataset.next="1";$("cGo").textContent=calAfter==="start"?"이대로 퀘스트 시작":"홈으로";$("cAgain").hidden=false;
+}
 
 /* ===== songs ===== */
 const SONGS=[
@@ -392,6 +497,7 @@ function renderHome(){
   renderDrill();
   {const r=LS.get("range",null);$("rangeCard").hidden=!r;if(r)$("rangeBox").innerHTML=rangeHTML(r)}
   document.querySelectorAll(".rbtn").forEach(b=>{const on=String(LS.get("recOn",true)?1:0)===b.dataset.r;b.style.background=on?"var(--accent)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"var(--accent)":"";b.onclick=()=>{LS.set("recOn",b.dataset.r==="1");renderHome()}});
+  {const c=LS.get("calib",null);$("calBtn").textContent=c?"다시 체크":"체크하기";$("calSum").textContent=c?`내 음역 ${nameOf(c.lo)}~${nameOf(c.hi)} · 연습 음 ${c.shift>0?"+":""}${c.shift}반음 맞춤${c.warn?` · 주의 ${c.warn}개`:""}`:"처음 한 번, 20초면 돼요. 내 음역과 마이크에 맞춰 음을 잡아요.";$("calBtn").onclick=()=>openCalib(null)}
   document.querySelectorAll(".vbtn").forEach(b=>{const on=LS.get("voice","m")===b.dataset.v;b.style.background=on?"var(--accent)":"";b.style.color=on?"#fff":"";b.style.borderColor=on?"var(--accent)":"";b.onclick=()=>{LS.set("voice",b.dataset.v);renderHome()}});
   // progress
   if(s.length){$("progressCard").hidden=false;const l=s[s.length-1],f=s[0];
@@ -460,8 +566,12 @@ $("go").onclick=async()=>{
   try{await Promise.race([mic(),new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),10000))])}
   catch(e){go.disabled=false;go.textContent=label;micHelp(e);return}
   go.disabled=false;go.textContent=label;
-  plan=allClear()?buildDaily():buildPlan();pi=0;gu=0;res={match:[],hold:[]};trail=[];running=true;show("session");lastF=performance.now();startItem();requestAnimationFrame(loop);
+  {const c=LS.get("calib",null),mi=micInfo();if(!c){openCalib("start");return}if(c.label&&mi.label&&c.label!==mi.label){openCalib("start","마이크가 바뀌었어요 ("+mi.label+"). 이 마이크에 맞춰 다시 체크할게요.");return}}
+  startQuest();
 };
+function startQuest(){
+  plan=allClear()?buildDaily():buildPlan();pi=0;gu=0;res={match:[],hold:[]};trail=[];running=true;show("session");lastF=performance.now();startItem();requestAnimationFrame(loop);
+}
 $("drillGo").onclick=async()=>{
   const a=analyze();if(!a||!a.weak.length)return;
   try{await mic()}catch(e){return}
